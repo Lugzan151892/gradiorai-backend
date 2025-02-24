@@ -1,0 +1,6 @@
+{
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "bracketSameLine": false,
+  "printWidth": 130
+}
