@@ -13,10 +13,8 @@ export class GptController {
       throw new UnauthorizedException('Password incorrect');
     }
 
-    const data = await this.gptService.gerateQuestions(body);
+    const data = await this.gptService.generateQuestions(body);
 
-    return {
-      data,
-    };
+    return data;
   }
 }
