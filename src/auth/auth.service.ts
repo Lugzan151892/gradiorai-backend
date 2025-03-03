@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -12,17 +12,29 @@ export class AuthService {
     private readonly configService: ConfigService
   ) {}
 
-  async generateAccessToken(userId: number) {
-    return this.jwtService.sign({ user_id: userId });
+  generateAccessToken(userId: number) {
+    const token = this.jwtService.sign(
+      { user_id: userId },
+      {
+        secret: this.configService.get('JWT_SECRET'),
+        expiresIn: '5m',
+      }
+    );
+    return token;
   }
 
   async getAccessTokenData(token: string): Promise<{ userId: number }> {
-    try {
-      const decoded = this.jwtService.verify(token);
-      return { userId: decoded.user_id };
-    } catch (e: any) {
-      throw new UnauthorizedException(e.message || 'Access token is invalid or expired');
-    }
+    const decoded = await this.jwtService.verifyAsync(token, {
+      secret: this.configService.get('JWT_SECRET'),
+    });
+    return { userId: decoded.user_id };
+  }
+
+  async getRefreshTokenData(token: string): Promise<{ userId: number }> {
+    const decoded = await this.jwtService.verifyAsync(token, {
+      secret: this.configService.get('JWT_SECRET'),
+    });
+    return { userId: decoded.user_id };
   }
 
   async generateRefreshToken(userId: number) {
@@ -34,7 +46,7 @@ export class AuthService {
       }
     );
 
-    this.prisma.refresh_token.create({
+    await this.prisma.refresh_token.create({
       data: {
         token: token,
         /** 30 days */
@@ -51,77 +63,135 @@ export class AuthService {
   }
 
   async updateAccessToken(refreshToken: string) {
-    try {
-      const decoded = this.jwtService.verify(refreshToken);
+    const decoded = this.jwtService.verify(refreshToken);
 
-      const savedToken = this.prisma.refresh_token.findUnique({
-        where: {
-          token: refreshToken,
-        },
-      });
+    const savedToken = await this.prisma.refresh_token.findUnique({
+      where: {
+        token: refreshToken,
+      },
+    });
 
-      if (!savedToken) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: decoded.user_id,
+      },
+    });
 
-      const accessToken = this.generateAccessToken(decoded.user_id);
-
-      return accessToken;
-    } catch (e: any) {
-      throw new UnauthorizedException(e.message || 'Refresh token is invalid or expired');
+    if (!savedToken || !user || savedToken.user_id !== user.id) {
+      throw new UnauthorizedException('Invalid refresh token');
     }
+
+    const accessToken = this.generateAccessToken(decoded.user_id);
+
+    return accessToken;
   }
 
   async registration(email: string, password: string) {
-    try {
-      const userExist = this.prisma.user.findUnique({
-        where: {
-          email: email,
-        },
-      });
+    const userExist = await this.prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
 
-      if (userExist) {
-        throw new HttpException(`User with email ${email} already exists`, HttpStatus.BAD_REQUEST);
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      return this.prisma.user.create({
-        data: {
-          email: email,
-          password: hashedPassword,
-        },
-        select: {
-          id: true,
-          email: true,
-          created_at: true,
-          updated_at: true,
-        },
-      });
-    } catch (e: any) {
-      throw new HttpException('Something goes wrong!', HttpStatus.INTERNAL_SERVER_ERROR);
+    if (userExist) {
+      throw new HttpException(`User with email ${email} already exists`, HttpStatus.BAD_REQUEST);
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const createdUser = await this.prisma.user.create({
+      data: {
+        email: email,
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+        email: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    const refreshToken = await this.generateRefreshToken(createdUser.id);
+    const accessToken = this.generateAccessToken(createdUser.id);
+
+    return {
+      user: createdUser,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    };
   }
 
-  // async login(email: string, password: string) {
-  //   try {
-  //     const user = this.prisma.user
-  //     const hashedPassword = await bcrypt.hash(password, 10);
+  async login(email: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
 
-  //     return this.prisma.user.create({
-  //       data: {
-  //         email: email,
-  //         password: hashedPassword,
-  //       },
-  //       select: {
-  //         id: true,
-  //         email: true,
-  //         created_at: true,
-  //         updated_at: true,
-  //       },
-  //     });
-  //   } catch (e: any) {
-  //     throw new UnauthorizedException(e.message || 'Something goes wrong!');
-  //   }
-  // }
+    if (!user) {
+      throw new HttpException(`User with email ${email} not found!`, HttpStatus.BAD_GATEWAY);
+    }
+
+    const passwordsMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordsMatch) {
+      throw new HttpException('Password incorrect', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.prisma.refresh_token.delete({
+      where: {
+        user_id: user.id,
+      },
+    });
+
+    const refreshToken = await this.generateRefreshToken(user.id);
+    const accessToken = this.generateAccessToken(user.id);
+
+    return {
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    };
+  }
+
+  async getUserFromTokens(accessToken?: string, refreshToken?: string) {
+    if (!accessToken && !refreshToken) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    try {
+      if (accessToken) {
+        const tokenData = await this.getAccessTokenData(accessToken);
+        const user = await this.prisma.user.findUnique({
+          where: {
+            id: tokenData.userId,
+          },
+        });
+        if (!user) {
+          throw new Error('User not found');
+        }
+      } else {
+        throw new Error('No access token');
+      }
+    } catch (error) {
+      if (refreshToken) {
+        const refreshData = await this.getRefreshTokenData(refreshToken);
+        const user = await this.prisma.user.findUnique({
+          where: {
+            id: refreshData.userId,
+          },
+        });
+
+        user;
+
+        const savedRefresh = await this.prisma.user.findUnique({
+          where: {
+            id: refreshData.userId,
+          },
+        });
+      } else {
+        throw new UnauthorizedException('No refresh token available');
+      }
+    }
+  }
 }
