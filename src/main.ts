@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
+import * as cookieParser from 'cookie-parser';
 import { GlobalExceptionFilter } from './utils/errors/exception.filter';
 
 async function bootstrap() {
@@ -15,6 +16,7 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
+  app.use(cookieParser());
   app.useGlobalFilters(new GlobalExceptionFilter());
   await app.listen(port);
   Logger.log(`Application is running on: http://localhost:${port}`);

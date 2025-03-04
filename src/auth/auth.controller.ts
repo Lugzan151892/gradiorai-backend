@@ -1,6 +1,6 @@
-import { Body, Controller, HttpCode, HttpException, HttpStatus, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -49,6 +49,18 @@ export class AuthController {
 
     return {
       accessToken: data.accessToken,
+    };
+  }
+
+  @Get('user')
+  async getUserData(@Req() request: Request) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    return {
+      data: user.user,
+      accessToken: user.accessToken,
     };
   }
 }
