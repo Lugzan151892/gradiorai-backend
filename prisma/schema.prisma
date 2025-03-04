@@ -9,6 +9,57 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+model Question {
+  id        Int         @id @default(autoincrement())
+  question  String
+  type      Int
+  level     Int
+  users     UserQuestionProgress[]
+  saved_by_id Int
+  saved_by   User     @relation(fields: [saved_by_id], references: [id])
+  responses Response[]
+}
+
+model Response {
+  id        Int      @id @default(autoincrement())
+  answer    String
+  correct   Boolean
+  question  Question @relation(fields: [question_id], references: [id])
+  question_id Int
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id   Int      @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  admin Boolean @default(false)
+  questions_passed   UserQuestionProgress[]
+  saved_question    Question[]
+  refresh_token RefreshToken?
+}
+
+model UserQuestionProgress {
+  user_id    Int
+  question_id Int
+  passed_at  DateTime
+  user      User    @relation(fields: [user_id], references: [id])
+  question  Question @relation(fields: [question_id], references: [id])
+  
+  @@id([user_id, question_id])
 }
