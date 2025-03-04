@@ -93,6 +93,9 @@ export class AuthService {
       },
     });
 
+    const admins: string = this.configService.get('ADMINS');
+    const adminsList = admins.split(',');
+
     if (userExist) {
       throw new HttpException(`User with email ${email} already exists`, HttpStatus.BAD_REQUEST);
     }
@@ -103,6 +106,7 @@ export class AuthService {
       data: {
         email: email,
         password: hashedPassword,
+        admin: adminsList.includes(email),
       },
       select: {
         id: true,
@@ -140,11 +144,19 @@ export class AuthService {
       throw new HttpException('Password incorrect', HttpStatus.BAD_REQUEST);
     }
 
-    await this.prisma.refreshToken.delete({
+    const savedToken = await this.prisma.refreshToken.findUnique({
       where: {
         user_id: user.id,
       },
     });
+
+    if (savedToken) {
+      await this.prisma.refreshToken.delete({
+        where: {
+          user_id: user.id,
+        },
+      });
+    }
 
     const refreshToken = await this.generateRefreshToken(user.id);
     const accessToken = this.generateAccessToken(user.id);
@@ -202,13 +214,15 @@ export class AuthService {
           },
         });
 
+        console.log('my tut v refresh tokene vot user', user);
+
         const savedRefresh = await this.prisma.refreshToken.findUnique({
           where: {
             user_id: user.id,
           },
         });
 
-        if (savedRefresh.token !== refreshToken) {
+        if (!savedRefresh || savedRefresh.token !== refreshToken) {
           throw new UnauthorizedException('Unauthorized');
         }
 
@@ -223,5 +237,24 @@ export class AuthService {
         throw new UnauthorizedException('No refresh token available');
       }
     }
+  }
+
+  async logout(accessToken?: string, refreshToken?: string) {
+    const user = await this.getUserFromTokens(accessToken, refreshToken);
+    const tokenExists = await this.prisma.refreshToken.findUnique({
+      where: { user_id: user.user.id },
+    });
+
+    if (tokenExists) {
+      await this.prisma.refreshToken.delete({
+        where: {
+          user_id: user.user.id,
+        },
+      });
+    }
+
+    return {
+      message: 'Successfully logout',
+    };
   }
 }

@@ -63,4 +63,14 @@ export class AuthController {
       accessToken: user.accessToken,
     };
   }
+
+  @Get('logout')
+  async logout(@Req() request: Request, @Res({ passthrough: true }) res: Response) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const result = await this.authService.logout(accessToken, refreshToken);
+    res.cookie('refresh_token', '', { maxAge: 0 });
+
+    return result;
+  }
 }
