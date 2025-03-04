@@ -94,7 +94,7 @@ export class AuthService {
     });
 
     const admins: string = this.configService.get('ADMINS');
-    const adminsList = admins.split(',');
+    const adminsList = (admins || '').split(',');
 
     if (userExist) {
       throw new HttpException(`User with email ${email} already exists`, HttpStatus.BAD_REQUEST);
