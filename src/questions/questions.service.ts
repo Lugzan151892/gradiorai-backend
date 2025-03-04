@@ -34,8 +34,9 @@ export class QuestionsService {
     };
   }
 
-  async getNonPassedQuestions(level: number, type: number, userId: number) {
+  async getNonPassedQuestions(level: number, type: number, amount: number, userId?: number) {
     const unansweredQuestions = await this.prisma.question.findMany({
+      take: amount,
       where: {
         ...(userId
           ? {

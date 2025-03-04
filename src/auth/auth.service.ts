@@ -214,8 +214,6 @@ export class AuthService {
           },
         });
 
-        console.log('my tut v refresh tokene vot user', user);
-
         const savedRefresh = await this.prisma.refreshToken.findUnique({
           where: {
             user_id: user.id,
@@ -223,7 +221,7 @@ export class AuthService {
         });
 
         if (!savedRefresh || savedRefresh.token !== refreshToken) {
-          throw new UnauthorizedException('Unauthorized');
+          return null;
         }
 
         const accessToken = this.generateAccessToken(user.id);
@@ -234,25 +232,26 @@ export class AuthService {
           refreshToken: savedRefresh.token,
         };
       } else {
-        throw new UnauthorizedException('No refresh token available');
+        return null;
       }
     }
   }
 
   async logout(accessToken?: string, refreshToken?: string) {
     const user = await this.getUserFromTokens(accessToken, refreshToken);
-    const tokenExists = await this.prisma.refreshToken.findUnique({
-      where: { user_id: user.user.id },
-    });
-
-    if (tokenExists) {
-      await this.prisma.refreshToken.delete({
-        where: {
-          user_id: user.user.id,
-        },
+    if (user) {
+      const tokenExists = await this.prisma.refreshToken.findUnique({
+        where: { user_id: user.user.id },
       });
-    }
 
+      if (tokenExists) {
+        await this.prisma.refreshToken.delete({
+          where: {
+            user_id: user.user.id,
+          },
+        });
+      }
+    }
     return {
       message: 'Successfully logout',
     };

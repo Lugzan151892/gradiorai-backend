@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Response, Request } from 'express';
 
@@ -57,6 +57,10 @@ export class AuthController {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
 
     return {
       data: user.user,

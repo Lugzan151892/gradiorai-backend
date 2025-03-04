@@ -19,8 +19,8 @@ model Question {
   type      Int
   level     Int
   users     UserQuestionProgress[]
+  saved_by_id Int
   saved_by   User     @relation(fields: [saved_by_id], references: [id])
-  saved_by_id Int @unique
   responses Response[]
 }
 
@@ -50,7 +50,7 @@ model User {
   updated_at DateTime @updatedAt
   admin Boolean @default(false)
   questions_passed   UserQuestionProgress[]
-  saved_question    Question?
+  saved_question    Question[]
   refresh_token RefreshToken?
 }
 
