@@ -4,22 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { GlobalExceptionFilter } from './utils/errors/exception.filter';
-import * as winston from 'winston';
-import { WinstonModule } from 'nest-winston';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: WinstonModule.createLogger({
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
-        }),
-        new winston.transports.File({
-          filename: 'logs/combined.log',
-          level: 'info',
-        }),
-      ],
-    }),
+    logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   });
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 5000;
