@@ -13,6 +13,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Question {
+  id        Int         @id @default(autoincrement())
+  question  String
+  type      Int
+  level     Int
+  users     UserQuestionProgress[]
+  saved_by   User     @relation(fields: [saved_by_id], references: [id])
+  saved_by_id Int @unique
+  responses Response[]
+}
+
+model Response {
+  id        Int      @id @default(autoincrement())
+  answer    String
+  correct   Boolean
+  question  Question @relation(fields: [question_id], references: [id])
+  question_id Int
+}
+
 model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique
@@ -30,5 +49,17 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   admin Boolean @default(false)
+  questions_passed   UserQuestionProgress[]
+  saved_question    Question?
   refresh_token RefreshToken?
+}
+
+model UserQuestionProgress {
+  user_id    Int
+  question_id Int
+  passed_at  DateTime
+  user      User    @relation(fields: [user_id], references: [id])
+  question  Question @relation(fields: [question_id], references: [id])
+  
+  @@id([user_id, question_id])
 }
