@@ -17,7 +17,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message = exception.message;
     }
 
-    this.logger.error(`Ошибка ${status}: ${message} - ${request.method} ${request.url}`, (exception as any)?.stack || '');
+    this.logger.error(
+      `Ошибка ${status}: ${message} - ${request.method} ${request.url} ${exception}`,
+      (exception as any)?.stack || ''
+    );
 
     response.status(status).json({
       statusCode: status,
