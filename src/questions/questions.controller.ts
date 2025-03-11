@@ -20,6 +20,7 @@ export class QuestionsController {
       type: number;
       level: number;
       responses: IQuestionResponse[];
+      techs: number[];
     }
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];

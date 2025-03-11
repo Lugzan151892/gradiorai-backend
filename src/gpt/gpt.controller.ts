@@ -11,7 +11,7 @@ export class GptController {
   ) {}
 
   @Post('generate')
-  async generate(@Req() request: Request, @Body() body: { amount: number; level: number; spec: number; password: string }) {
+  async generate(@Req() request: Request, @Body() body: { level: number; spec: number; password: string; techs?: number[] }) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
     const isPasswordCorrect = process.env.TEST_SECRET === body.password;
