@@ -8,4 +8,5 @@ export interface IQuestion {
   type: number;
   level: number;
   responses: IQuestionResponse[];
+  techs: number[];
 }

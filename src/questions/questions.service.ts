@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IQuestion } from '../utils/interfaces/questions';
+import { ETEST_SPEC } from 'src/utils/interfaces/enums';
 
 @Injectable()
 export class QuestionsService {
@@ -14,8 +15,22 @@ export class QuestionsService {
         level: question.level,
         saved_by: { connect: { id: userId } },
         responses: {
-          create: question.responses,
+          create: question.responses.map((response) => ({
+            answer: response.answer,
+            correct: response.correct,
+          })),
         },
+        ...(question.techs?.length
+          ? {
+              technologies: {
+                createMany: {
+                  data: question.techs.map((techId) => ({
+                    technologyId: techId,
+                  })),
+                },
+              },
+            }
+          : {}),
       },
     });
 
@@ -34,7 +49,7 @@ export class QuestionsService {
     };
   }
 
-  async getNonPassedQuestions(level: number, type: number, amount: number, userId?: number) {
+  async getNonPassedQuestions(level: number, type: number, amount: number, userId?: number, techs?: number[]) {
     const unansweredQuestions = await this.prisma.question.findMany({
       take: amount,
       where: {
@@ -51,6 +66,15 @@ export class QuestionsService {
           : {}),
         level: { equals: level },
         type: { equals: type },
+        ...(techs && techs.length
+          ? {
+              technologies: {
+                some: {
+                  technologyId: { in: techs },
+                },
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -63,5 +87,61 @@ export class QuestionsService {
     });
 
     return unansweredQuestions;
+  }
+
+  async saveNewTech(name: string, spec: number) {
+    const isSpecExist = await this.prisma.technology.findUnique({
+      where: {
+        name: name,
+        spec: spec,
+      },
+    });
+
+    if (isSpecExist) {
+      throw new HttpException(`Technology with name ${name} in spec ${ETEST_SPEC[spec]} already exist`, HttpStatus.BAD_REQUEST);
+    }
+
+    const createdTech = await this.prisma.technology.create({
+      data: {
+        name: name,
+        spec: spec,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return createdTech;
+  }
+
+  async getTechs(spec?: number) {
+    const options: {
+      where?: {
+        spec: number;
+      };
+    } = spec
+      ? {
+          where: {
+            spec: spec,
+          },
+        }
+      : {};
+    const techs = await this.prisma.technology.findMany(options);
+
+    return techs;
+  }
+
+  async getTechsById(techs?: number[]) {
+    if (!techs?.length) {
+      return [];
+    }
+
+    const result = await this.prisma.technology.findMany({
+      where: {
+        id: { in: techs },
+      },
+    });
+
+    return result;
   }
 }
