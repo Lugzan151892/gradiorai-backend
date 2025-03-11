@@ -28,28 +28,39 @@ export class GptService {
     private readonly configService: ConfigService,
     private readonly questionService: QuestionsService
   ) {}
-  async generateQuestions(params: { amount: number; level: ESKILL_LEVEL; spec: ETEST_SPEC }, userId?: number, isAdmin?: boolean) {
+  async generateQuestions(
+    params: { level: ESKILL_LEVEL; spec: ETEST_SPEC; techs?: number[] },
+    userId?: number,
+    isAdmin?: boolean
+  ) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
-    let questionsAmount = params.amount;
+    let questionsAmount = 10;
     let questions = [];
     if (!isAdmin) {
       const questionsFromDatabase = await this.questionService.getNonPassedQuestions(
         params.level,
         params.spec,
-        params.amount,
-        userId
+        questionsAmount,
+        userId,
+        params.techs
       );
 
-      if (questionsFromDatabase.length >= params.amount) {
+      console.log(questionsFromDatabase.length);
+
+      if (questionsFromDatabase.length >= questionsAmount) {
         return {
-          response: questionsFromDatabase.slice(0, params.amount),
+          response: questionsFromDatabase.slice(0, questionsAmount),
           usage: null,
         };
       } else {
+        console.log(questionsFromDatabase.length);
         questionsAmount -= questionsFromDatabase.length;
+        console.log(questionsAmount);
         questions = [...questionsFromDatabase];
       }
     }
+
+    const questionTechs = await this.questionService.getTechsById(params.techs);
 
     const openai = new OpenAI({ apiKey: apiKey });
     const completion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
@@ -65,7 +76,7 @@ export class GptService {
         {
           role: 'user',
           content: `Сгенерируй ${questionsAmount} вопроса для собеседования на должность
-          ${getSkillLevel(params.level)} ${getSpecText(params.spec)} с 4 вариантами ответа.
+          ${getSkillLevel(params.level)} ${getSpecText(params.spec)} с 4 вариантами ответа. ${questionTechs.length ? `Вопросы должны касаться следующих технологий: ${questionTechs.map((el) => el.name).join(', ')}.` : ''}
           Должен быть один правильный ответ и 3 неправильных.`,
         },
       ],

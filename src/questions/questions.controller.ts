@@ -1,5 +1,4 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { Request } from 'express';
 import { IQuestionResponse } from '../utils/interfaces/questions';
@@ -8,7 +7,6 @@ import { QuestionsService } from './questions.service';
 @Controller('questions')
 export class QuestionsController {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly authService: AuthService,
     private readonly questionsService: QuestionsService
   ) {}
@@ -22,6 +20,7 @@ export class QuestionsController {
       type: number;
       level: number;
       responses: IQuestionResponse[];
+      techs: number[];
     }
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
@@ -46,5 +45,46 @@ export class QuestionsController {
     const questions = await this.questionsService.getNonPassedQuestions(query.level, query.type, query.user_id);
 
     return questions;
+  }
+
+  @Post('add-tech')
+  async saveTech(
+    @Req() request: Request,
+    @Body()
+    body: {
+      spec: number;
+      name: string;
+    }
+  ) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    const result = this.questionsService.saveNewTech(body.name, body.spec);
+
+    return result;
+  }
+
+  @Get('get-techs')
+  async getTechs(@Query() query: { spec?: number }, @Req() request: Request) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    if (!query.spec) {
+      throw new HttpException('Spec not found', HttpStatus.BAD_REQUEST);
+    }
+
+    const techs = await this.questionsService.getTechs(+query.spec);
+
+    return { techs: techs };
   }
 }
