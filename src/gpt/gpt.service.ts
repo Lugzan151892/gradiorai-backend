@@ -6,6 +6,7 @@ import { zodResponseFormat } from 'openai/helpers/zod';
 import { getSkillLevel, getSpecText } from './utils';
 import { ESKILL_LEVEL, ETEST_SPEC } from '../utils/interfaces/enums';
 import { QuestionsService } from 'src/questions/questions.service';
+import mockedQuestions from '../utils/mocked/mockedQuestions';
 
 const GPTResponse = z.object({
   questions: z.array(
@@ -45,17 +46,13 @@ export class GptService {
         params.techs
       );
 
-      console.log(questionsFromDatabase.length);
-
       if (questionsFromDatabase.length >= questionsAmount) {
         return {
           response: questionsFromDatabase.slice(0, questionsAmount),
           usage: null,
         };
       } else {
-        console.log(questionsFromDatabase.length);
         questionsAmount -= questionsFromDatabase.length;
-        console.log(questionsAmount);
         questions = [...questionsFromDatabase];
       }
     }
@@ -76,12 +73,12 @@ export class GptService {
         {
           role: 'user',
           content: `Сгенерируй ${questionsAmount} вопроса для собеседования на должность
-          ${getSkillLevel(params.level)} ${getSpecText(params.spec)} с 4 вариантами ответа. ${questionTechs.length ? `Вопросы должны касаться следующих технологий: ${questionTechs.map((el) => el.name).join(', ')}.` : ''}
+          ${getSkillLevel(params.level)} ${getSpecText(params.spec)} с 4 вариантами ответа. Вопросы и ответы генерируй на русском языке. Пример хороших вопросов для QA ${JSON.stringify(mockedQuestions)}. Сгенерируй вопросы в похожем стиле, но они не должны повторять вопросы из примеров. ${questionTechs.length ? `Вопросы должны касаться следующих технологий: ${questionTechs.map((el) => el.name).join(', ')}.` : ''}
           Должен быть один правильный ответ и 3 неправильных.`,
         },
       ],
       response_format: zodResponseFormat(GPTResponse, 'event'),
-      temperature: 1,
+      temperature: 0.8,
     });
 
     return {
