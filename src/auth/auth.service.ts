@@ -135,7 +135,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new HttpException(`User with email ${email} not found!`, HttpStatus.BAD_GATEWAY);
+      throw new HttpException(`User with email ${email} not found!`, HttpStatus.BAD_REQUEST);
     }
 
     const passwordsMatch = await bcrypt.compare(password, user.password);
