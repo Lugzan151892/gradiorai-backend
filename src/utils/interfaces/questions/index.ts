@@ -6,7 +6,7 @@ export interface IQuestionResponse {
 export interface IQuestion {
   question: string;
   type: number;
-  level: number;
+  level: number[];
   responses: IQuestionResponse[];
   techs: number[];
 }

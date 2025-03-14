@@ -8,45 +8,53 @@ export class QuestionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async saveQuestion(question: IQuestion, userId: number) {
-    const newQuestion = await this.prisma.question.create({
-      data: {
-        question: question.question,
-        type: question.type,
-        level: question.level,
-        saved_by: { connect: { id: userId } },
-        responses: {
-          create: question.responses.map((response) => ({
-            answer: response.answer,
-            correct: response.correct,
-          })),
-        },
-        ...(question.techs?.length
-          ? {
-              technologies: {
-                createMany: {
-                  data: question.techs.map((techId) => ({
-                    technologyId: techId,
-                  })),
-                },
-              },
-            }
-          : {}),
-      },
-    });
-
-    const progress = await this.prisma.userQuestionProgress.create({
-      data: {
-        user_id: newQuestion.saved_by_id,
-        question_id: newQuestion.id,
-        passed_at: new Date(),
-      },
-    });
-
-    return {
-      user_id: progress.user_id,
-      question_id: progress.question_id,
-      passed_at: progress.passed_at,
+    const result = {
+      user_id: 0,
+      questions_id: [],
+      passed_at: [],
     };
+
+    question.level.forEach(async (level) => {
+      const newQuestion = await this.prisma.question.create({
+        data: {
+          question: question.question,
+          type: question.type,
+          level: level,
+          saved_by: { connect: { id: userId } },
+          responses: {
+            create: question.responses.map((response) => ({
+              answer: response.answer,
+              correct: response.correct,
+            })),
+          },
+          ...(question.techs?.length
+            ? {
+                technologies: {
+                  createMany: {
+                    data: question.techs.map((techId) => ({
+                      technologyId: techId,
+                    })),
+                  },
+                },
+              }
+            : {}),
+        },
+      });
+
+      const progress = await this.prisma.userQuestionProgress.create({
+        data: {
+          user_id: newQuestion.saved_by_id,
+          question_id: newQuestion.id,
+          passed_at: new Date(),
+        },
+      });
+
+      result.passed_at.push(progress.passed_at);
+      result.questions_id.push(progress.question_id);
+      result.user_id = progress.user_id;
+    });
+
+    return result;
   }
 
   async getNonPassedQuestions(level: number, type: number, amount: number, userId?: number, techs?: number[]) {
