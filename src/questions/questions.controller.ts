@@ -18,7 +18,7 @@ export class QuestionsController {
     body: {
       question: string;
       type: number;
-      level: number;
+      level: Array<number>;
       responses: IQuestionResponse[];
       techs: number[];
     }
