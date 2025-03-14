@@ -144,4 +144,23 @@ export class QuestionsService {
 
     return result;
   }
+
+  async getPassedQuestionsByUser(level: number, type: number, userId: number) {
+    const passedQuestions = await this.prisma.question.findMany({
+      where: {
+        users: {
+          some: {
+            user_id: userId,
+          },
+        },
+        level: { equals: level },
+        type: { equals: type },
+      },
+      select: {
+        question: true,
+      },
+    });
+
+    return passedQuestions;
+  }
 }
