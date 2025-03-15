@@ -80,3 +80,15 @@ model UserQuestionProgress {
   
   @@id([user_id, question_id])
 }
+
+model GptSettings {
+  id                  Int @id @default(autoincrement())
+  user_model          String
+  admin_model         String
+  spec                Int @unique
+  system_message      String
+  user_message        String
+  admin_amount        Int
+  user_amount         Int
+  temperature         Float
+}
