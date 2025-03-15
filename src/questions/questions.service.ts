@@ -128,20 +128,11 @@ export class QuestionsService {
     return createdTech;
   }
 
-  async getTechs(spec?: number) {
-    const options: {
-      where?: {
-        spec: number;
-      };
-    } = spec
-      ? {
-          where: {
-            spec: spec,
-          },
-        }
-      : {};
+  async getTechs(spec: number) {
     const techs = await this.prisma.technology.findMany({
-      ...options,
+      where: {
+        spec: spec,
+      },
       select: {
         id: true,
         name: true,
@@ -152,7 +143,16 @@ export class QuestionsService {
       },
     });
 
-    return techs;
+    const questionsAmount = await this.prisma.question.count({
+      where: {
+        type: spec,
+      },
+    });
+
+    return {
+      techs: techs,
+      questions_amount: questionsAmount,
+    };
   }
 
   async getTechsById(techs?: number[]) {
