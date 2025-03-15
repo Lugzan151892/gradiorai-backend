@@ -80,10 +80,12 @@ export class GptService {
     return this.getDefaultSettings(spec);
   }
 
-  async updateGptSettings(settings: IGptSettings, spec: number) {
+  async updateGptSettings(settings: IGptSettings) {
+    console.log(settings);
+
     const createdSettings = await this.prismaService.gptSettings.upsert({
       where: {
-        spec: spec,
+        spec: settings.spec,
       },
       update: settings,
       create: settings,

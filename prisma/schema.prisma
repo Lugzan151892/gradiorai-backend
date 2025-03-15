@@ -86,8 +86,8 @@ model GptSettings {
   user_model          String
   admin_model         String
   spec                Int @unique
-  system_message      String
-  user_message        String
+  system_message      String @db.LongText
+  user_message        String @db.LongText
   admin_amount        Int
   user_amount         Int
   temperature         Float
