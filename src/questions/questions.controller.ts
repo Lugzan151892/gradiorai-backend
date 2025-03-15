@@ -83,9 +83,9 @@ export class QuestionsController {
       throw new HttpException('Spec not found', HttpStatus.BAD_REQUEST);
     }
 
-    const techs = await this.questionsService.getTechs(+query.spec);
+    const result = await this.questionsService.getTechs(+query.spec);
 
-    return { techs: techs };
+    return result;
   }
 
   @Post('update-progress')
