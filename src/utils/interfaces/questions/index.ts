@@ -4,6 +4,7 @@ export interface IQuestionResponse {
 }
 
 export interface IQuestion {
+  id?: number;
   question: string;
   type: number;
   level: number[];
