@@ -134,7 +134,17 @@ export class QuestionsService {
           },
         }
       : {};
-    const techs = await this.prisma.technology.findMany(options);
+    const techs = await this.prisma.technology.findMany({
+      ...options,
+      select: {
+        id: true,
+        name: true,
+        spec: true,
+        _count: {
+          select: { questions: true },
+        },
+      },
+    });
 
     return techs;
   }
