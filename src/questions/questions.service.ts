@@ -49,9 +49,15 @@ export class QuestionsService {
         },
       });
 
+      console.log(progress.passed_at);
+      console.log(progress.question_id);
+      console.log(progress.user_id);
+
       result.passed_at.push(progress.passed_at);
       result.questions_id.push(progress.question_id);
       result.user_id = progress.user_id;
+
+      console.log(result);
     });
 
     return result;
@@ -180,5 +186,38 @@ export class QuestionsService {
     });
 
     return passedQuestions;
+  }
+
+  async saveQuestionProgress(questionId, userId: number) {
+    if (!questionId || !userId) {
+      throw new HttpException('User or question not found', HttpStatus.BAD_REQUEST);
+    }
+
+    const existedQuestion = await this.prisma.question.findUnique({
+      where: {
+        id: questionId,
+        users: {
+          none: { user_id: userId },
+        },
+      },
+    });
+
+    if (!existedQuestion) {
+      throw new HttpException('Question not found', HttpStatus.BAD_REQUEST);
+    }
+
+    const progress = await this.prisma.userQuestionProgress.create({
+      data: {
+        user_id: userId,
+        question_id: existedQuestion.id,
+        passed_at: new Date(),
+      },
+    });
+
+    return {
+      passed_at: progress.passed_at,
+      question_id: progress.question_id,
+      user_id: progress.user_id,
+    };
   }
 }

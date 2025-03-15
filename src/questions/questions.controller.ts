@@ -87,4 +87,25 @@ export class QuestionsController {
 
     return { techs: techs };
   }
+
+  @Post('update-progress')
+  async updateQuestionProgress(
+    @Req() request: Request,
+    @Body()
+    body: {
+      question_id: number;
+    }
+  ) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    const result = await this.questionsService.saveQuestionProgress(body.question_id, user.user.id);
+
+    return result;
+  }
 }
