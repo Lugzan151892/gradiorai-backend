@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GptModule } from './gpt/gpt.module';
@@ -7,6 +7,9 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { QuestionsModule } from './questions/questions.module';
 import { SystemModule } from './system/system.module';
+import { IpLoggerMiddleware } from './middleware/ip-logger.middleware';
+import { WinstonModule } from 'nest-winston';
+import { winstonConfig } from './config/winston/winston.config';
 
 @Module({
   imports: [
@@ -15,6 +18,9 @@ import { SystemModule } from './system/system.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    WinstonModule.forRoot({
+      instance: winstonConfig,
+    }),
     AuthModule,
     QuestionsModule,
     SystemModule,
@@ -22,4 +28,8 @@ import { SystemModule } from './system/system.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(IpLoggerMiddleware).forRoutes('*');
+  }
+}
