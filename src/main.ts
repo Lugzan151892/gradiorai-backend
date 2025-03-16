@@ -4,30 +4,11 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { GlobalExceptionFilter } from './utils/errors/exception.filter';
-import * as winston from 'winston';
-import { WinstonModule } from 'nest-winston';
+import { winstonConfig } from './config/winston/winston.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: WinstonModule.createLogger({
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-            winston.format.simple(),
-            winston.format.printf(({ timestamp, level, message }) => {
-              return `[${timestamp}] ${level}: ${message}`;
-            })
-          ),
-        }),
-        new winston.transports.File({
-          filename: 'logs/combined.log',
-          level: 'info',
-          format: winston.format.combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), winston.format.json()),
-        }),
-      ],
-    }),
+    logger: winstonConfig,
   });
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 5000;
@@ -39,6 +20,6 @@ async function bootstrap() {
   app.use(cookieParser());
   app.useGlobalFilters(new GlobalExceptionFilter());
   await app.listen(port);
-  Logger.log(`Application is running on: http://localhost:${port}`);
+  Logger.log('info', `Application is running on: http://localhost:${port}`);
 }
 bootstrap();
