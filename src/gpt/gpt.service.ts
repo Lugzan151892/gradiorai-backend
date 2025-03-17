@@ -112,7 +112,7 @@ export class GptService {
     let questions = [];
     let passedQuestions = [];
     if (userId) {
-      passedQuestions = await this.questionService.getPassedQuestionsByUser(params.level, params.spec, userId);
+      passedQuestions = await this.questionService.getPassedQuestionsByUser(params.level, params.spec, userId, params.techs);
     }
 
     const questionsFromDatabase = await this.questionService.getNonPassedQuestions(
