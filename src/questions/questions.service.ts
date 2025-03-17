@@ -169,7 +169,7 @@ export class QuestionsService {
     return result;
   }
 
-  async getPassedQuestionsByUser(level: number, type: number, userId: number) {
+  async getPassedQuestionsByUser(level: number, type: number, userId: number, techs: number[]) {
     const passedQuestions = await this.prisma.question.findMany({
       where: {
         users: {
@@ -179,6 +179,15 @@ export class QuestionsService {
         },
         level: { equals: level },
         type: { equals: type },
+        ...(techs && techs.length
+          ? {
+              technologies: {
+                some: {
+                  technologyId: { in: techs },
+                },
+              },
+            }
+          : {}),
       },
       select: {
         question: true,
