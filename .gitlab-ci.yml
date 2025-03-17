@@ -1,0 +1,19 @@
+stages:
+  - deploy
+
+variables:
+  SSH_USER: 'user'
+  SSH_HOST: 'server'
+
+before_script:
+  - mkdir -p ~/.ssh
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+  - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+deploy:
+  stage: deploy
+  only:
+    - master
+  script:
+    - ssh $SSH_USER@$SSH_HOST "cd ../var/www/backend && git pull && npm install && npm run build && pm2 restart interview-ready-back"
