@@ -2,8 +2,8 @@ stages:
   - deploy
 
 variables:
-  SSH_USER: 'user'
-  SSH_HOST: 'server'
+  SSH_USER: 'root'
+  SSH_HOST: '90.156.169.86'
 
 before_script:
   - mkdir -p ~/.ssh
@@ -16,4 +16,6 @@ deploy:
   only:
     - master
   script:
+    - echo "Connecting to $SSH_USER@$SSH_HOST"
+    - ssh -v $SSH_USER@$SSH_HOST "echo 'Connected successfully'"
     - ssh $SSH_USER@$SSH_HOST "cd ../var/www/backend && git pull && npm install && npm run build && pm2 restart interview-ready-back"
