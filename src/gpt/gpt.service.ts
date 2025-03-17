@@ -145,7 +145,7 @@ export class GptService {
 
     const openai = new OpenAI({ apiKey: apiKey });
     const completion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: isAdmin ? settings.admin_model : settings.user_model,
       store: true,
       messages: [
         {
