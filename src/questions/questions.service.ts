@@ -183,7 +183,6 @@ export class QuestionsService {
       select: {
         question: true,
       },
-      take: 30,
     });
 
     return passedQuestions;
