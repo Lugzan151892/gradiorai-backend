@@ -1,0 +1,41 @@
+# stages:
+#   - deploy
+
+# variables:
+#   SSH_USER: 'root'
+#   SSH_HOST: '90.156.169.86'
+
+# before_script:
+#   - mkdir -p ~/.ssh
+#   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+#   - chmod 600 ~/.ssh/id_rsa
+#   - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+# deploy:
+#   stage: deploy
+#   only:
+#     - master
+#   script:
+#     - echo "Connecting to $SSH_USER@$SSH_HOST"
+#     - ssh -v $SSH_USER@$SSH_HOST "echo 'Connected successfully'"
+#     - ssh $SSH_USER@$SSH_HOST "cd ../var/www/backend && git pull && npm install && npm run build && pm2 restart interview-ready-back"
+
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  only:
+    - master
+  before_script:
+    - 'which ssh-agent || (apt update -y && apt install openssh-client -y)'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+  script:
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p $DEPLOY_PATH"
+    - rsync -avz --delete . $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && npm install && npx prisma migrate deploy"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && npm install && npm run build && pm2 restart all"
