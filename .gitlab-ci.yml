@@ -28,7 +28,7 @@ deploy:
   only:
     - master
   before_script:
-    - 'which ssh-agent || (apt update -y && apt install openssh-client -y)'
+    - 'which ssh-agent || (apt update -y && apt install openssh-client rsync -y)'
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh
