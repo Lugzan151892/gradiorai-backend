@@ -24,10 +24,14 @@ export class AuthService {
   }
 
   async getAccessTokenData(token: string): Promise<{ userId: number }> {
-    const decoded = await this.jwtService.verifyAsync(token, {
-      secret: this.configService.get('JWT_SECRET'),
-    });
-    return { userId: decoded.user_id };
+    try {
+      const decoded = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+      return { userId: decoded.user_id };
+    } catch (e: any) {
+      return null;
+    }
   }
 
   async getRefreshTokenData(token: string): Promise<{ userId: number }> {
@@ -173,46 +177,54 @@ export class AuthService {
     }
 
     try {
+      let user = null;
+
       if (accessToken) {
         const tokenData = await this.getAccessTokenData(accessToken);
-        const user = await this.prisma.user.findUnique({
-          where: {
-            id: tokenData.userId,
-          },
-          select: {
-            id: true,
-            email: true,
-            created_at: true,
-            updated_at: true,
-            admin: true,
-          },
-        });
-        if (!user) {
-          throw new UnauthorizedException('User not found');
-        }
 
+        user = tokenData
+          ? await this.prisma.user.findUnique({
+              where: {
+                id: tokenData.userId,
+              },
+              select: {
+                id: true,
+                email: true,
+                created_at: true,
+                updated_at: true,
+                admin: true,
+              },
+            })
+          : null;
+      }
+
+      if (user) {
         return {
           user: user,
           accessToken: accessToken,
         };
-      } else {
-        throw new UnauthorizedException('No access token');
       }
-    } catch (error) {
+
       if (refreshToken) {
         const refreshData = await this.getRefreshTokenData(refreshToken);
-        const user = await this.prisma.user.findUnique({
-          where: {
-            id: refreshData.userId,
-          },
-          select: {
-            id: true,
-            email: true,
-            created_at: true,
-            updated_at: true,
-            admin: true,
-          },
-        });
+        user = refreshData
+          ? await this.prisma.user.findUnique({
+              where: {
+                id: refreshData.userId,
+              },
+              select: {
+                id: true,
+                email: true,
+                created_at: true,
+                updated_at: true,
+                admin: true,
+              },
+            })
+          : null;
+
+        if (!user) {
+          return null;
+        }
 
         const savedRefresh = await this.prisma.refreshToken.findUnique({
           where: {
@@ -231,9 +243,9 @@ export class AuthService {
           accessToken: accessToken,
           refreshToken: savedRefresh.token,
         };
-      } else {
-        return null;
       }
+    } catch (error) {
+      console.log(error);
     }
   }
 
