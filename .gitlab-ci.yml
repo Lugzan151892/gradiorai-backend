@@ -7,12 +7,5 @@ deploy:
   stage: deploy
   only:
     - master
-  before_script:
-    - apt update -y && apt install -y openssh-client rsync
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
   script:
     - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && git reset --hard origin/master && git clean -fd && git pull origin master --rebase && npm install && npx prisma migrate deploy && npm run build && pm2 restart 'interview-ready-back' && pm2 save"
