@@ -15,9 +15,4 @@ deploy:
     - chmod 700 ~/.ssh
     - echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
   script:
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p $DEPLOY_PATH"
-    - rsync -avz --delete . $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH --exclude '.env'
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && export $(grep -v '^#' .env | xargs) && npm install && npx prisma migrate deploy"
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && npm install && npm run build"
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && pm2 restart interview-ready-back --update-env || pm2 start dist/main.js --name interview-ready-back"
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "pm2 save"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && git reset --hard origin/master && git clean -fd && git pull origin master --rebase && npm install && npx prisma migrate deploy && npm run build && pm2 restart 'interview-ready-back' && pm2 save"
