@@ -59,7 +59,7 @@ export class AuthController {
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('User not found so far');
     }
 
     return {
