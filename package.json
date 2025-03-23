@@ -21,6 +21,7 @@
     "update:db": "npx prisma migrate dev --name init"
   },
   "dependencies": {
+    "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^10.0.0",
@@ -30,8 +31,10 @@
     "@prisma/client": "^6.4.1",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
+    "ioredis": "^5.6.0",
     "mysql2": "^3.12.0",
     "nest-winston": "^1.10.2",
+    "nodemailer": "^6.10.0",
     "openai": "^4.86.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
