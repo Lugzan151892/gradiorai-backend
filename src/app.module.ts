@@ -10,6 +10,7 @@ import { SystemModule } from './system/system.module';
 import { IpLoggerMiddleware } from './middleware/ip-logger.middleware';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './config/winston/winston.config';
+import { RedisModule } from '@nestjs-modules/ioredis';
 
 @Module({
   imports: [
@@ -20,6 +21,10 @@ import { winstonConfig } from './config/winston/winston.config';
     }),
     WinstonModule.forRoot({
       instance: winstonConfig,
+    }),
+    RedisModule.forRoot({
+      type: 'single',
+      url: 'redis://localhost:6379',
     }),
     AuthModule,
     QuestionsModule,
