@@ -2,14 +2,18 @@ import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@n
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 import * as bcrypt from 'bcrypt';
+import * as nodemailer from 'nodemailer';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    @InjectRedis() private readonly redis: Redis
   ) {}
 
   generateAccessToken(userId: number) {
@@ -90,7 +94,13 @@ export class AuthService {
     return accessToken;
   }
 
-  async registration(email: string, password: string) {
+  async registration(email: string, password: string, email_code: string) {
+    const isCodeValid = await this.verifyCode(email, email_code);
+
+    if (!isCodeValid) {
+      throw new HttpException({ message: 'Email code not valid!', info: { type: 'code' } }, HttpStatus.BAD_REQUEST);
+    }
+
     const userExist = await this.prisma.user.findUnique({
       where: {
         email: email,
@@ -267,5 +277,66 @@ export class AuthService {
     return {
       message: 'Successfully logout',
     };
+  }
+
+  private generateEmailCode(): string {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+  }
+
+  async sendVerificationCode(email: string): Promise<void> {
+    const userExist = await this.prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (userExist) {
+      throw new HttpException(`User with email ${email} already exists`, HttpStatus.BAD_REQUEST);
+    }
+
+    const code = this.generateEmailCode();
+    const key = `verification:${email}`;
+
+    await this.redis.set(key, code, 'EX', 300);
+
+    await this.sendEmail(email, code);
+  }
+
+  async verifyCode(email: string, code: string): Promise<boolean> {
+    const key = `verification:${email}`;
+    const storedCode = await this.redis.get(key);
+
+    if (storedCode === code) {
+      return true;
+    }
+    return false;
+  }
+
+  private async sendEmail(email: string, code: string): Promise<void> {
+    const mailHost = this.configService.get<string>('MAIL_HOST');
+    const mailPort = this.configService.get<string>('MAIL_PORT');
+    const mailUser = this.configService.get<string>('MAIL_USER');
+    const mailPass = this.configService.get<string>('MAIL_PASS');
+    const transporter = nodemailer.createTransport({
+      host: mailHost,
+      port: mailPort,
+      secure: false,
+      auth: {
+        user: mailUser,
+        pass: mailPass,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+      logger: true,
+      debug: true,
+    });
+
+    await transporter.sendMail({
+      from: '"Interview Ready" <no-reply@interviewready.ru>',
+      to: email,
+      subject: 'Verification Code',
+      text: `Your verification code is: ${code}`,
+    });
   }
 }

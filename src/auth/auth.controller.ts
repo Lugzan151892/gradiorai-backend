@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Response, Request } from 'express';
 
@@ -13,13 +13,15 @@ export class AuthController {
       email: string;
       password: string;
       repeated_password: string;
+      email_code: string;
     },
     @Res({ passthrough: true }) response: Response
   ) {
     if (body.password !== body.repeated_password) {
-      throw new HttpException('Passwords dodo not match', HttpStatus.BAD_REQUEST);
+      throw new HttpException({ type: 'password', message: 'Passwords do not match' }, HttpStatus.BAD_REQUEST);
     }
-    const data = await this.authService.registration(body.email, body.password);
+
+    const data = await this.authService.registration(body.email, body.password, body.email_code);
 
     response.cookie('refresh_token', data.refreshToken, {
       httpOnly: true,
@@ -28,6 +30,19 @@ export class AuthController {
 
     return {
       accessToken: data.accessToken,
+    };
+  }
+
+  @Get('code-request')
+  async requestEmailCode(@Query() query: { email: string }) {
+    if (!query.email) {
+      throw new HttpException('Email not found', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.authService.sendVerificationCode(query.email);
+
+    return {
+      message: `Verification code was sent on email ${query.email}`,
     };
   }
 
