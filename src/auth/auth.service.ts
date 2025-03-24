@@ -283,15 +283,17 @@ export class AuthService {
     return Math.floor(1000 + Math.random() * 9000).toString();
   }
 
-  async sendVerificationCode(email: string): Promise<void> {
+  async sendVerificationCode(email: string, userShouldExist?: boolean): Promise<void> {
     const userExist = await this.prisma.user.findUnique({
       where: {
         email: email,
       },
     });
 
-    if (userExist) {
+    if (userExist && !userShouldExist) {
       throw new HttpException(`User with email ${email} already exists`, HttpStatus.BAD_REQUEST);
+    } else if (!userExist && userShouldExist) {
+      throw new HttpException({ message: `User with email ${email} not found`, info: { type: 'email' } }, HttpStatus.BAD_REQUEST);
     }
 
     const code = this.generateEmailCode();
@@ -315,6 +317,60 @@ export class AuthService {
       return true;
     }
     return false;
+  }
+
+  async checkRestoreCode(email: string, code: string) {
+    const userExist = await this.prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!userExist) {
+      throw new HttpException({ message: `User with email ${email} not found`, info: { type: 'email' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const isCodeCorrect = await this.verifyCode(email, code);
+
+    if (!isCodeCorrect) {
+      throw new HttpException({ message: `Code is not correct`, info: { type: 'code' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    return true;
+  }
+
+  async restorePassword(email: string, password: string, email_code: string) {
+    const isCodeValid = await this.verifyCode(email, email_code);
+
+    if (!isCodeValid) {
+      throw new HttpException({ message: 'Email code not valid!', info: { type: 'code' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const userExist = await this.prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!userExist) {
+      throw new HttpException(`User with email ${email} not found`, HttpStatus.BAD_REQUEST);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const updatedUser = await this.prisma.user.update({
+      where: {
+        email: email,
+      },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return {
+      user_id: updatedUser.id,
+      message: 'Пароль изменен',
+    };
   }
 
   private async sendEmail(email: string, code: string): Promise<void> {
