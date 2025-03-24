@@ -46,6 +46,52 @@ export class AuthController {
     };
   }
 
+  @Get('restore-code-request')
+  async requestRestorePasswordCode(@Query() query: { email: string }) {
+    if (!query.email) {
+      throw new HttpException('Email not found', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.authService.sendVerificationCode(query.email, true);
+
+    return {
+      message: `Verification code was sent on email ${query.email}`,
+    };
+  }
+
+  @Get('code-check')
+  async checkEmailCode(@Query() query: { email: string; code: string }) {
+    if (!query.email || !query.code) {
+      throw new HttpException('Email or code not valid', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.authService.checkRestoreCode(query.email, query.code);
+
+    return {
+      success: result,
+    };
+  }
+
+  @Post('restore-password')
+  async restorePassword(
+    @Body()
+    body: {
+      email: string;
+      code: string;
+      password: string;
+      repeated_password: string;
+    },
+    @Res({ passthrough: true }) response: Response
+  ) {
+    if (body.password !== body.repeated_password) {
+      throw new HttpException({ type: 'password', message: 'Passwords do not match' }, HttpStatus.BAD_REQUEST);
+    }
+
+    const data = await this.authService.restorePassword(body.email, body.password, body.code);
+
+    return data;
+  }
+
   @Post('login')
   async login(
     @Body()
