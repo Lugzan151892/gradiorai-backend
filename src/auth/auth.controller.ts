@@ -18,7 +18,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response
   ) {
     if (body.password !== body.repeated_password) {
-      throw new HttpException({ type: 'password', message: 'Passwords do not match' }, HttpStatus.BAD_REQUEST);
+      throw new HttpException({ message: 'Введенные пароли не совпадают', info: { type: 'password' } }, HttpStatus.BAD_REQUEST);
     }
 
     const data = await this.authService.registration(body.email, body.password, body.email_code);
@@ -36,7 +36,10 @@ export class AuthController {
   @Get('code-request')
   async requestEmailCode(@Query() query: { email: string }) {
     if (!query.email) {
-      throw new HttpException('Email not found', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: `Пользователь с email ${query.email} не найден`, info: { type: 'email' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     await this.authService.sendVerificationCode(query.email);
@@ -49,7 +52,10 @@ export class AuthController {
   @Get('restore-code-request')
   async requestRestorePasswordCode(@Query() query: { email: string }) {
     if (!query.email) {
-      throw new HttpException('Email not found', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: `Пользователь с email ${query.email} не найден`, info: { type: 'email' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     await this.authService.sendVerificationCode(query.email, true);
@@ -62,7 +68,7 @@ export class AuthController {
   @Get('code-check')
   async checkEmailCode(@Query() query: { email: string; code: string }) {
     if (!query.email || !query.code) {
-      throw new HttpException('Email or code not valid', HttpStatus.BAD_REQUEST);
+      throw new HttpException('Некорректно введен email или код подтверждения', HttpStatus.BAD_REQUEST);
     }
 
     const result = await this.authService.checkRestoreCode(query.email, query.code);
@@ -84,7 +90,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response
   ) {
     if (body.password !== body.repeated_password) {
-      throw new HttpException({ type: 'password', message: 'Passwords do not match' }, HttpStatus.BAD_REQUEST);
+      throw new HttpException({ message: 'Введенные пароли не совпадают', info: { type: 'password' } }, HttpStatus.BAD_REQUEST);
     }
 
     const data = await this.authService.restorePassword(body.email, body.password, body.code);
@@ -120,7 +126,7 @@ export class AuthController {
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
 
     if (!user) {
-      throw new UnauthorizedException('User not found so far');
+      throw new UnauthorizedException('User not found');
     }
 
     return {

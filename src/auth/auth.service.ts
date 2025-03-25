@@ -98,7 +98,10 @@ export class AuthService {
     const isCodeValid = await this.verifyCode(email, email_code);
 
     if (!isCodeValid) {
-      throw new HttpException({ message: 'Email code not valid!', info: { type: 'code' } }, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: 'Введен некорректный код подтверждения', info: { type: 'code' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const userExist = await this.prisma.user.findUnique({
@@ -111,7 +114,10 @@ export class AuthService {
     const adminsList = (admins || '').split(',');
 
     if (userExist) {
-      throw new HttpException(`User with email ${email} already exists`, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: `Пользователь с email ${email} уже существует`, info: { type: 'email' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -149,13 +155,16 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new HttpException(`User with email ${email} not found!`, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: `Пользователь с email ${email} не найден!`, info: { type: 'email' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const passwordsMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordsMatch) {
-      throw new HttpException('Password incorrect', HttpStatus.BAD_REQUEST);
+      throw new HttpException({ message: 'Неверный пароль', info: { type: 'password' } }, HttpStatus.BAD_REQUEST);
     }
 
     const savedToken = await this.prisma.refreshToken.findUnique({
@@ -291,9 +300,12 @@ export class AuthService {
     });
 
     if (userExist && !userShouldExist) {
-      throw new HttpException(`User with email ${email} already exists`, HttpStatus.BAD_REQUEST);
+      throw new HttpException(`Пользователь с email ${email} уже существует`, HttpStatus.BAD_REQUEST);
     } else if (!userExist && userShouldExist) {
-      throw new HttpException({ message: `User with email ${email} not found`, info: { type: 'email' } }, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: `Пользователь с email ${email} не найден`, info: { type: 'email' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const code = this.generateEmailCode();
@@ -327,13 +339,19 @@ export class AuthService {
     });
 
     if (!userExist) {
-      throw new HttpException({ message: `User with email ${email} not found`, info: { type: 'email' } }, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: `Пользователь с email ${email} не найден`, info: { type: 'email' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const isCodeCorrect = await this.verifyCode(email, code);
 
     if (!isCodeCorrect) {
-      throw new HttpException({ message: `Code is not correct`, info: { type: 'code' } }, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: `Введен некорректный код подтверждения!`, info: { type: 'code' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     return true;
@@ -343,7 +361,10 @@ export class AuthService {
     const isCodeValid = await this.verifyCode(email, email_code);
 
     if (!isCodeValid) {
-      throw new HttpException({ message: 'Email code not valid!', info: { type: 'code' } }, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: 'Введен некорректный код подтверждения!', info: { type: 'code' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const userExist = await this.prisma.user.findUnique({
@@ -353,7 +374,10 @@ export class AuthService {
     });
 
     if (!userExist) {
-      throw new HttpException(`User with email ${email} not found`, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { message: `Пользователь с email ${email} не найден`, info: { type: 'code' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
