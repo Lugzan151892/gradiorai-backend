@@ -75,12 +75,17 @@ export class GptService {
   }
 
   async updateGptSettings(settings: IGptSettings) {
+    const newSettings = settings;
+    if (!settings.id) {
+      delete settings.id;
+    }
+
     const createdSettings = await this.prismaService.gptSettings.upsert({
       where: {
-        id: settings.id ?? 1,
+        id: newSettings.id ?? 1,
       },
-      update: settings,
-      create: settings,
+      update: newSettings,
+      create: newSettings,
     });
 
     return createdSettings;
