@@ -16,7 +16,6 @@ datasource db {
 model Question {
   id        Int         @id @default(autoincrement())
   question  String
-  type      Int
   level     Int
   users     UserQuestionProgress[]
   saved_by_id Int

@@ -18,7 +18,6 @@ export class QuestionsService {
       const newQuestion = await this.prisma.question.create({
         data: {
           question: question.question,
-          type: question.type,
           level: level,
           saved_by: { connect: { id: userId } },
           responses: {
@@ -73,7 +72,6 @@ export class QuestionsService {
             }
           : {}),
         level: { equals: level },
-        type: { equals: type },
         ...(techs && techs.length
           ? {
               technologies: {
@@ -89,7 +87,6 @@ export class QuestionsService {
         question: true,
         saved_by_id: true,
         level: true,
-        type: true,
         responses: true,
       },
     });
@@ -141,13 +138,7 @@ export class QuestionsService {
       },
     });
 
-    const questionsAmount = spec
-      ? await this.prisma.question.count({
-          where: {
-            type: +spec,
-          },
-        })
-      : 0;
+    const questionsAmount = await this.prisma.question.count();
 
     return {
       techs: techs,
@@ -178,7 +169,6 @@ export class QuestionsService {
           },
         },
         level: { equals: level },
-        type: { equals: type },
         ...(techs && techs.length
           ? {
               technologies: {
@@ -252,7 +242,6 @@ export class QuestionsService {
         responses: true,
         saved_by: true,
         technologies: true,
-        type: true,
         level: true,
       },
     });
