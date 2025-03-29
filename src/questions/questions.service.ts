@@ -18,7 +18,6 @@ export class QuestionsService {
       const newQuestion = await this.prisma.question.create({
         data: {
           question: question.question,
-          type: question.type,
           level: level,
           saved_by: { connect: { id: userId } },
           responses: {
@@ -49,21 +48,15 @@ export class QuestionsService {
         },
       });
 
-      console.log(progress.passed_at);
-      console.log(progress.question_id);
-      console.log(progress.user_id);
-
       result.passed_at.push(progress.passed_at);
       result.questions_id.push(progress.question_id);
       result.user_id = progress.user_id;
-
-      console.log(result);
     });
 
     return result;
   }
 
-  async getNonPassedQuestions(level: number, type: number, amount: number, userId?: number, techs?: number[]) {
+  async getNonPassedQuestions(level: number, amount: number, userId?: number, techs?: number[]) {
     const unansweredQuestions = await this.prisma.question.findMany({
       take: amount,
       where: {
@@ -79,7 +72,6 @@ export class QuestionsService {
             }
           : {}),
         level: { equals: level },
-        type: { equals: type },
         ...(techs && techs.length
           ? {
               technologies: {
@@ -95,7 +87,6 @@ export class QuestionsService {
         question: true,
         saved_by_id: true,
         level: true,
-        type: true,
         responses: true,
       },
     });
@@ -128,11 +119,15 @@ export class QuestionsService {
     return createdTech;
   }
 
-  async getTechs(spec: number) {
+  async getTechs(spec?: string) {
     const techs = await this.prisma.technology.findMany({
-      where: {
-        spec: spec,
-      },
+      ...(spec
+        ? {
+            where: {
+              spec: +spec,
+            },
+          }
+        : {}),
       select: {
         id: true,
         name: true,
@@ -143,11 +138,7 @@ export class QuestionsService {
       },
     });
 
-    const questionsAmount = await this.prisma.question.count({
-      where: {
-        type: spec,
-      },
-    });
+    const questionsAmount = await this.prisma.question.count();
 
     return {
       techs: techs,
@@ -169,7 +160,7 @@ export class QuestionsService {
     return result;
   }
 
-  async getPassedQuestionsByUser(level: number, type: number, userId: number, techs: number[]) {
+  async getPassedQuestionsByUser(level: number, userId: number, techs: number[]) {
     const passedQuestions = await this.prisma.question.findMany({
       where: {
         users: {
@@ -178,7 +169,6 @@ export class QuestionsService {
           },
         },
         level: { equals: level },
-        type: { equals: type },
         ...(techs && techs.length
           ? {
               technologies: {
@@ -228,5 +218,34 @@ export class QuestionsService {
       question_id: progress.question_id,
       user_id: progress.user_id,
     };
+  }
+
+  async getQuestions(withoutTechs?: boolean, userId?: number) {
+    const questions = await this.prisma.question.findMany({
+      ...(userId || withoutTechs
+        ? {
+            where: {
+              ...(userId ? { saved_by_id: userId } : {}),
+              ...(withoutTechs
+                ? {
+                    technologies: {
+                      none: {},
+                    },
+                  }
+                : {}),
+            },
+          }
+        : {}),
+      select: {
+        id: true,
+        question: true,
+        responses: true,
+        saved_by: true,
+        technologies: true,
+        level: true,
+      },
+    });
+
+    return questions;
   }
 }
