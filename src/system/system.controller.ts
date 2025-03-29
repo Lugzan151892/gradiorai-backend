@@ -39,7 +39,7 @@ export class SystemController {
   }
 
   @Get('gpt-settings')
-  async getGptSettings(@Query() query: { spec?: number }, @Req() request: Request) {
+  async getGptSettings(@Req() request: Request) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
@@ -48,11 +48,7 @@ export class SystemController {
       throw new UnauthorizedException('Unauthorized or not an admin');
     }
 
-    if (!query.spec) {
-      throw new HttpException('Specialization invalid', HttpStatus.BAD_REQUEST);
-    }
-
-    const settings = await this.gptService.getSettings(+query.spec);
+    const settings = await this.gptService.getSettings();
 
     return settings;
   }
@@ -68,8 +64,6 @@ export class SystemController {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
-
-    console.log(body);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not Admin');
