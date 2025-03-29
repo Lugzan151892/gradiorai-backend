@@ -49,15 +49,9 @@ export class QuestionsService {
         },
       });
 
-      console.log(progress.passed_at);
-      console.log(progress.question_id);
-      console.log(progress.user_id);
-
       result.passed_at.push(progress.passed_at);
       result.questions_id.push(progress.question_id);
       result.user_id = progress.user_id;
-
-      console.log(result);
     });
 
     return result;
@@ -128,11 +122,15 @@ export class QuestionsService {
     return createdTech;
   }
 
-  async getTechs(spec: number) {
+  async getTechs(spec?: string) {
     const techs = await this.prisma.technology.findMany({
-      where: {
-        spec: spec,
-      },
+      ...(spec
+        ? {
+            where: {
+              spec: +spec,
+            },
+          }
+        : {}),
       select: {
         id: true,
         name: true,
@@ -143,11 +141,13 @@ export class QuestionsService {
       },
     });
 
-    const questionsAmount = await this.prisma.question.count({
-      where: {
-        type: spec,
-      },
-    });
+    const questionsAmount = spec
+      ? await this.prisma.question.count({
+          where: {
+            type: +spec,
+          },
+        })
+      : 0;
 
     return {
       techs: techs,
@@ -228,5 +228,35 @@ export class QuestionsService {
       question_id: progress.question_id,
       user_id: progress.user_id,
     };
+  }
+
+  async getQuestions(withoutTechs?: boolean, userId?: number) {
+    const questions = await this.prisma.question.findMany({
+      ...(userId || withoutTechs
+        ? {
+            where: {
+              ...(userId ? { saved_by_id: userId } : {}),
+              ...(withoutTechs
+                ? {
+                    technologies: {
+                      none: {},
+                    },
+                  }
+                : {}),
+            },
+          }
+        : {}),
+      select: {
+        id: true,
+        question: true,
+        responses: true,
+        saved_by: true,
+        technologies: true,
+        type: true,
+        level: true,
+      },
+    });
+
+    return questions;
   }
 }

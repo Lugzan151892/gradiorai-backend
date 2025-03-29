@@ -38,7 +38,7 @@ model QuestionTechnology {
   question     Question    @relation(fields: [questionId], references: [id])
   technology   Technology  @relation(fields: [technologyId], references: [id])
 
-  @@id([questionId, technologyId]) // Композитный ключ для связи многие ко многим
+  @@id([questionId, technologyId])
 }
 
 model Response {
