@@ -17,7 +17,6 @@ export class QuestionsController {
     @Body()
     body: {
       question: string;
-      type: number;
       level: Array<number>;
       responses: IQuestionResponse[];
       techs: number[];
@@ -37,12 +36,12 @@ export class QuestionsController {
   }
 
   @Get('get')
-  async getQuestions(@Query() query: { type?: number; level?: number; user_id?: number }) {
-    if (!query.type || !query.level) {
+  async getQuestions(@Query() query: { level?: number; user_id?: number }) {
+    if (!query.level) {
       throw new HttpException('Type or level not found', HttpStatus.BAD_REQUEST);
     }
 
-    const questions = await this.questionsService.getNonPassedQuestions(query.level, query.type, query.user_id);
+    const questions = await this.questionsService.getNonPassedQuestions(query.level, query.user_id);
 
     return questions;
   }
