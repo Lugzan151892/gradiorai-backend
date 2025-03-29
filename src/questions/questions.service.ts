@@ -56,7 +56,7 @@ export class QuestionsService {
     return result;
   }
 
-  async getNonPassedQuestions(level: number, type: number, amount: number, userId?: number, techs?: number[]) {
+  async getNonPassedQuestions(level: number, amount: number, userId?: number, techs?: number[]) {
     const unansweredQuestions = await this.prisma.question.findMany({
       take: amount,
       where: {
@@ -160,7 +160,7 @@ export class QuestionsService {
     return result;
   }
 
-  async getPassedQuestionsByUser(level: number, type: number, userId: number, techs: number[]) {
+  async getPassedQuestionsByUser(level: number, userId: number, techs: number[]) {
     const passedQuestions = await this.prisma.question.findMany({
       where: {
         users: {

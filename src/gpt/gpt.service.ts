@@ -12,17 +12,16 @@ import {
   defaultUserMessage,
   defaultUserModel,
   getSkillLevel,
-  getSpecText,
   replacePromptKeywords,
 } from './utils';
-import { ESKILL_LEVEL, ETEST_SPEC } from '../utils/interfaces/enums';
+import { ESKILL_LEVEL } from '../utils/interfaces/enums';
 import { QuestionsService } from '../questions/questions.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface IGptSettings {
+  id?: number;
   user_model: 'gpt-4o-mini' | 'gpt-4o';
   admin_model: 'gpt-4o-mini' | 'gpt-4o';
-  spec: number;
   system_message: string;
   user_message: string;
   admin_amount: number;
@@ -53,11 +52,10 @@ export class GptService {
     private readonly prismaService: PrismaService
   ) {}
 
-  getDefaultSettings(spec: number): IGptSettings {
+  getDefaultSettings(): IGptSettings {
     return {
       user_model: defaultUserModel,
       admin_model: defaultAdminModel,
-      spec: spec,
       system_message: defaultSystemMessage,
       user_message: defaultUserMessage,
       admin_amount: defaultAdminAmount,
@@ -66,26 +64,20 @@ export class GptService {
     };
   }
 
-  async getSettings(spec: number) {
-    const settings = (await this.prismaService.gptSettings.findFirst({
-      where: {
-        spec: spec,
-      },
-    })) as IGptSettings;
+  async getSettings() {
+    const settings = (await this.prismaService.gptSettings.findFirst()) as IGptSettings;
 
     if (settings) {
       return settings;
     }
 
-    return this.getDefaultSettings(spec);
+    return this.getDefaultSettings();
   }
 
   async updateGptSettings(settings: IGptSettings) {
-    console.log(settings);
-
     const createdSettings = await this.prismaService.gptSettings.upsert({
       where: {
-        spec: settings.spec,
+        id: settings.id ?? 1,
       },
       update: settings,
       create: settings,
@@ -94,15 +86,11 @@ export class GptService {
     return createdSettings;
   }
 
-  async generateQuestions(
-    params: { level: ESKILL_LEVEL; spec: ETEST_SPEC; techs?: number[] },
-    userId?: number,
-    isAdmin?: boolean
-  ) {
+  async generateQuestions(params: { level: ESKILL_LEVEL; techs?: number[] }, userId?: number, isAdmin?: boolean) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
-    let settings = this.getDefaultSettings(params.spec);
+    let settings = this.getDefaultSettings();
 
-    const savedSettings: IGptSettings = await this.getSettings(params.spec);
+    const savedSettings: IGptSettings = await this.getSettings();
 
     if (savedSettings) {
       settings = savedSettings;
@@ -112,12 +100,11 @@ export class GptService {
     let questions = [];
     let passedQuestions = [];
     if (userId) {
-      passedQuestions = await this.questionService.getPassedQuestionsByUser(params.level, params.spec, userId, params.techs);
+      passedQuestions = await this.questionService.getPassedQuestionsByUser(params.level, userId, params.techs);
     }
 
     const questionsFromDatabase = await this.questionService.getNonPassedQuestions(
       params.level,
-      params.spec,
       questionsAmount,
       userId,
       params.techs
@@ -139,7 +126,6 @@ export class GptService {
       $PASSED_QUESTIONS: passedQuestions.map((question) => question.question).join(', '),
       $QUESTIONS_AMOUNT: isAdmin ? settings.admin_amount : settings.user_amount,
       $SKILL_LEVEL: getSkillLevel(params.level),
-      $SPECIALIZATION: getSpecText(params.spec),
       $QUESTION_TECHS: questionTechs.map((el) => el.name).join(', '),
     };
 

@@ -84,7 +84,6 @@ model GptSettings {
   id                  Int @id @default(autoincrement())
   user_model          String
   admin_model         String
-  spec                Int @unique
   system_message      String @db.LongText
   user_message        String @db.LongText
   admin_amount        Int
