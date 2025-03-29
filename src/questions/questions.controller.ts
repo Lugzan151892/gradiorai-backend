@@ -70,7 +70,7 @@ export class QuestionsController {
   }
 
   @Get('get-techs')
-  async getTechs(@Query() query: { spec?: number }, @Req() request: Request) {
+  async getTechs(@Query() query: { spec?: string }, @Req() request: Request) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
@@ -79,11 +79,7 @@ export class QuestionsController {
       throw new UnauthorizedException('Unauthorized');
     }
 
-    if (!query.spec) {
-      throw new HttpException('Spec not found', HttpStatus.BAD_REQUEST);
-    }
-
-    const result = await this.questionsService.getTechs(+query.spec);
+    const result = await this.questionsService.getTechs(query.spec);
 
     return result;
   }
@@ -105,6 +101,23 @@ export class QuestionsController {
     }
 
     const result = await this.questionsService.saveQuestionProgress(body.question_id, user.user.id);
+
+    return result;
+  }
+
+  @Get('questions-list')
+  async getAllQuestions(@Req() request: Request, @Query() query: { only_mine: string; only_without_specs: string }) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+    const result = await this.questionsService.getQuestions(
+      query.only_without_specs === 'true',
+      query.only_mine === 'true' ? user.user.id : undefined
+    );
 
     return result;
   }
