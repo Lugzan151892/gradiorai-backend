@@ -17,7 +17,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let message = 'Внутренняя ошибка сервера';
     let body = {};
 
-    if (exception) {
+    if (exception && 'getStatus' in exception) {
       status = exception.getStatus();
       message = exception.message;
       if (exception.getResponse && (exception.getResponse() as { info: any }).info) {
