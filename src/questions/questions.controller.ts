@@ -94,22 +94,14 @@ export class QuestionsController {
   }
 
   @Get('get-techs')
-  async getTechs(@Query() query: { spec?: string }, @Req() request: Request) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
-
-    if (!user) {
-      throw new UnauthorizedException('Unauthorized');
-    }
-
-    const result = await this.questionsService.getTechs();
+  async getTechs(@Query() query: { specs?: string }) {
+    const result = await this.questionsService.getTechs(query.specs ? query.specs.split(',').map((el) => +el) : undefined);
 
     return result;
   }
 
   @Get('get-specs')
-  async getAllSpecs(@Query() query: { spec?: string }, @Req() request: Request) {
+  async getAllSpecs(@Query() query: { spec?: string }) {
     const result = await this.questionsService.getAllSpecs();
 
     return result;

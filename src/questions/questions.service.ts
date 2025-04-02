@@ -111,10 +111,8 @@ export class QuestionsService {
         description: body.description,
         ...(body.specs?.length
           ? {
-              SpecializationTechnology: {
-                create: body.specs.map((specializationId) => ({
-                  specialization: { connect: { id: specializationId } },
-                })),
+              specialization: {
+                connect: body.specs.map((id) => ({ id })),
               },
             }
           : {}),
@@ -153,26 +151,35 @@ export class QuestionsService {
       data: {
         name: body.name,
         description: body.description,
+        ...(newIds.length
+          ? {
+              specialization: {
+                set: newIds.map((id) => ({ id })),
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
       },
     });
 
-    if (newIds.length > 0) {
-      await this.prisma.specializationTechnology.createMany({
-        data: newIds.map((specializationId) => ({
-          specializationId,
-          technologyId: updatedTech.id,
-        })),
-      });
-    }
-
     return updatedTech;
   }
 
-  async getTechs() {
+  async getTechs(specs: Array<number>) {
     const techs = await this.prisma.technology.findMany({
+      ...(specs && specs.length
+        ? {
+            where: {
+              specialization: {
+                some: {
+                  id: { in: specs },
+                },
+              },
+            },
+          }
+        : {}),
       select: {
         id: true,
         name: true,
@@ -221,10 +228,8 @@ export class QuestionsService {
         name: body.name,
         ...(body.techs?.length
           ? {
-              SpecializationTechnology: {
-                create: body.techs.map((techId) => ({
-                  technology: { connect: { id: techId } },
-                })),
+              technology: {
+                connect: body.techs.map((id) => ({ id })),
               },
             }
           : {}),
@@ -262,6 +267,13 @@ export class QuestionsService {
       },
       data: {
         name: body.name,
+        ...(newIds.length
+          ? {
+              technology: {
+                set: newIds.map((id) => ({ id })),
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
