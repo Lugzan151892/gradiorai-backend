@@ -51,19 +51,44 @@ export class QuestionsController {
     @Req() request: Request,
     @Body()
     body: {
-      spec: number;
       name: string;
+      description?: string;
+      specs?: Array<number>;
     }
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
 
-    if (!user) {
-      throw new UnauthorizedException('Unauthorized');
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
     }
 
-    const result = this.questionsService.saveNewTech(body.name, body.spec);
+    const result = this.questionsService.saveNewTech(body);
+
+    return result;
+  }
+
+  @Post('edit-tech')
+  async editTech(
+    @Req() request: Request,
+    @Body()
+    body: {
+      id: number;
+      name?: string;
+      description?: string;
+      specs?: Array<number>;
+    }
+  ) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
+    }
+
+    const result = this.questionsService.editTech(body);
 
     return result;
   }
@@ -78,7 +103,36 @@ export class QuestionsController {
       throw new UnauthorizedException('Unauthorized');
     }
 
-    const result = await this.questionsService.getTechs(query.spec);
+    const result = await this.questionsService.getTechs();
+
+    return result;
+  }
+
+  @Get('get-specs')
+  async getAllSpecs(@Query() query: { spec?: string }, @Req() request: Request) {
+    const result = await this.questionsService.getAllSpecs();
+
+    return result;
+  }
+
+  @Post('add-spec')
+  async saveSpec(
+    @Req() request: Request,
+    @Body()
+    body: {
+      name: string;
+      techs?: Array<number>;
+    }
+  ) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
+    }
+
+    const result = this.questionsService.saveNewSpec(body);
 
     return result;
   }
