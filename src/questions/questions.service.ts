@@ -94,22 +94,30 @@ export class QuestionsService {
     return unansweredQuestions;
   }
 
-  async saveNewTech(name: string, spec: number) {
-    const isSpecExist = await this.prisma.technology.findUnique({
+  async saveNewTech(body: { name: string; description?: string; specs?: Array<number> }) {
+    const isTechExist = await this.prisma.technology.findUnique({
       where: {
-        name: name,
-        spec: spec,
+        name: body.name,
       },
     });
 
-    if (isSpecExist) {
-      throw new HttpException(`Technology with name ${name} in spec ${ETEST_SPEC[spec]} already exist`, HttpStatus.BAD_REQUEST);
+    if (isTechExist) {
+      throw new HttpException(`Technology with name ${body.name} already exist`, HttpStatus.BAD_REQUEST);
     }
 
     const createdTech = await this.prisma.technology.create({
       data: {
-        name: name,
-        spec: spec,
+        name: body.name,
+        description: body.description,
+        ...(body.specs?.length
+          ? {
+              SpecializationTechnology: {
+                create: body.specs.map((specializationId) => ({
+                  specialization: { connect: { id: specializationId } },
+                })),
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -119,19 +127,56 @@ export class QuestionsService {
     return createdTech;
   }
 
-  async getTechs(spec?: string) {
+  async editTech(body: { id: number; name?: string; description?: string; specs?: Array<number> }) {
+    const isTechExist = await this.prisma.technology.findUnique({
+      where: {
+        id: body.id,
+      },
+    });
+
+    if (!isTechExist) {
+      throw new HttpException(`Technology with id ${body.id} not found`, HttpStatus.BAD_REQUEST);
+    }
+
+    const existingRelations = await this.prisma.specializationTechnology.findMany({
+      where: { technologyId: body.id },
+      select: { specializationId: true },
+    });
+
+    const existingIds = new Set(existingRelations.map((rel) => rel.specializationId));
+    const newIds = (body.specs || []).filter((id) => !existingIds.has(id));
+
+    const updatedTech = await this.prisma.technology.update({
+      where: {
+        id: body.id,
+      },
+      data: {
+        name: body.name,
+        description: body.description,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (newIds.length > 0) {
+      await this.prisma.specializationTechnology.createMany({
+        data: newIds.map((specializationId) => ({
+          specializationId,
+          technologyId: updatedTech.id,
+        })),
+      });
+    }
+
+    return updatedTech;
+  }
+
+  async getTechs() {
     const techs = await this.prisma.technology.findMany({
-      ...(spec
-        ? {
-            where: {
-              spec: +spec,
-            },
-          }
-        : {}),
       select: {
         id: true,
         name: true,
-        spec: true,
+        specialization: true,
         _count: {
           select: { questions: true },
         },
@@ -156,6 +201,107 @@ export class QuestionsService {
         id: { in: techs },
       },
     });
+
+    return result;
+  }
+
+  async saveNewSpec(body: { name: string; techs?: Array<number> }) {
+    const isSpecExist = await this.prisma.specialization.findUnique({
+      where: {
+        name: body.name,
+      },
+    });
+
+    if (isSpecExist) {
+      throw new HttpException(`Specialization with name ${body.name} already exist`, HttpStatus.BAD_REQUEST);
+    }
+
+    const createdSpec = await this.prisma.specialization.create({
+      data: {
+        name: body.name,
+        ...(body.techs?.length
+          ? {
+              SpecializationTechnology: {
+                create: body.techs.map((techId) => ({
+                  technology: { connect: { id: techId } },
+                })),
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return createdSpec;
+  }
+
+  async editSpec(body: { id: number; name?: string; techs?: Array<number> }) {
+    const isSpecExist = await this.prisma.specialization.findUnique({
+      where: {
+        id: body.id,
+      },
+    });
+
+    if (!isSpecExist) {
+      throw new HttpException(`Technology with id ${body.id} not found`, HttpStatus.BAD_REQUEST);
+    }
+
+    const existingRelations = await this.prisma.specializationTechnology.findMany({
+      where: { specializationId: body.id },
+      select: { technologyId: true },
+    });
+
+    const existingIds = new Set(existingRelations.map((rel) => rel.technologyId));
+    const newIds = (body.techs || []).filter((id) => !existingIds.has(id));
+
+    const updatedSpec = await this.prisma.specialization.update({
+      where: {
+        id: body.id,
+      },
+      data: {
+        name: body.name,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (newIds.length > 0) {
+      await this.prisma.specializationTechnology.createMany({
+        data: newIds.map((technologyId) => ({
+          technologyId,
+          specializationId: updatedSpec.id,
+        })),
+      });
+    }
+
+    return updatedSpec;
+  }
+
+  async getAllSpecs() {
+    const specs = await this.prisma.specialization.findMany({
+      select: {
+        id: true,
+        name: true,
+        technology: true,
+      },
+    });
+
+    return specs;
+  }
+
+  async getSpecById(specId: number) {
+    const result = await this.prisma.specialization.findMany({
+      where: {
+        id: specId,
+      },
+    });
+
+    if (!result) {
+      throw new HttpException(`Specialization with id ${specId} not found`, HttpStatus.BAD_REQUEST);
+    }
 
     return result;
   }

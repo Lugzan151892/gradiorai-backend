@@ -14,79 +14,97 @@ datasource db {
 }
 
 model Question {
-  id        Int         @id @default(autoincrement())
-  question  String
-  level     Int
-  users     UserQuestionProgress[]
-  saved_by_id Int
-  saved_by   User     @relation(fields: [saved_by_id], references: [id])
-  responses Response[]
+  id           Int                    @id @default(autoincrement())
+  question     String
+  level        Int
+  users        UserQuestionProgress[]
+  saved_by_id  Int
+  saved_by     User                   @relation(fields: [saved_by_id], references: [id])
+  responses    Response[]
   technologies QuestionTechnology[]
 }
 
 model Technology {
-  id           Int          @id @default(autoincrement())
-  name         String       @unique
-  spec         Int
-  questions    QuestionTechnology[]
+  id                       Int                        @id @default(autoincrement())
+  name                     String                     @unique
+  description              String?                    @default("")
+  specialization           Specialization[]
+  questions                QuestionTechnology[]
+  SpecializationTechnology SpecializationTechnology[]
+}
+
+model Specialization {
+  id                       Int                        @id @default(autoincrement())
+  name                     String                     @unique
+  technology               Technology[]
+  SpecializationTechnology SpecializationTechnology[]
 }
 
 model QuestionTechnology {
   questionId   Int
   technologyId Int
-  question     Question    @relation(fields: [questionId], references: [id])
-  technology   Technology  @relation(fields: [technologyId], references: [id])
+  question     Question   @relation(fields: [questionId], references: [id])
+  technology   Technology @relation(fields: [technologyId], references: [id])
 
   @@id([questionId, technologyId])
 }
 
+model SpecializationTechnology {
+  specializationId Int
+  technologyId     Int
+  specialization   Specialization @relation(fields: [specializationId], references: [id])
+  technology       Technology     @relation(fields: [technologyId], references: [id])
+
+  @@id([specializationId, technologyId])
+}
+
 model Response {
-  id        Int      @id @default(autoincrement())
-  answer    String
-  correct   Boolean
-  question  Question @relation(fields: [question_id], references: [id])
+  id          Int      @id @default(autoincrement())
+  answer      String
+  correct     Boolean
+  question    Question @relation(fields: [question_id], references: [id])
   question_id Int
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  user_id   Int      @unique
+  id         String   @id @default(uuid())
+  token      String   @unique
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id    Int      @unique
   expires_at DateTime
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  admin Boolean @default(false)
-  questions_passed   UserQuestionProgress[]
-  saved_question    Question[]
-  refresh_token RefreshToken?
+  id               Int                    @id @default(autoincrement())
+  email            String                 @unique
+  password         String
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @updatedAt
+  admin            Boolean                @default(false)
+  questions_passed UserQuestionProgress[]
+  saved_question   Question[]
+  refresh_token    RefreshToken?
 }
 
 model UserQuestionProgress {
-  user_id    Int
+  user_id     Int
   question_id Int
-  passed_at  DateTime
-  user      User    @relation(fields: [user_id], references: [id])
-  question  Question @relation(fields: [question_id], references: [id])
-  
+  passed_at   DateTime
+  user        User     @relation(fields: [user_id], references: [id])
+  question    Question @relation(fields: [question_id], references: [id])
+
   @@id([user_id, question_id])
 }
 
 model GptSettings {
-  id                  Int @id @default(autoincrement())
-  user_model          String
-  admin_model         String
-  system_message      String @db.LongText
-  user_message        String @db.LongText
-  admin_amount        Int
-  user_amount         Int
-  temperature         Float
+  id             Int    @id @default(autoincrement())
+  user_model     String
+  admin_model    String
+  system_message String @db.LongText
+  user_message   String @db.LongText
+  admin_amount   Int
+  user_amount    Int
+  temperature    Float
 }
