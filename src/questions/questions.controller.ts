@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpException,
+  HttpStatus,
+  Post,
+  Query,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { Request } from 'express';
 import { IQuestionResponse } from '../utils/interfaces/questions';
@@ -35,6 +46,31 @@ export class QuestionsController {
     return savedQuestion;
   }
 
+  @Post('edit')
+  async editQuestion(
+    @Req() request: Request,
+    @Body()
+    body: {
+      id: number;
+      question: string;
+      level: Array<number>;
+      responses: IQuestionResponse[];
+      techs: number[];
+    }
+  ) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not and admin!');
+    }
+
+    const savedQuestion = await this.questionsService.editQuestions(body);
+
+    return savedQuestion;
+  }
+
   @Get('get')
   async getQuestions(@Query() query: { level?: number; user_id?: number }) {
     if (!query.level) {
@@ -51,34 +87,135 @@ export class QuestionsController {
     @Req() request: Request,
     @Body()
     body: {
-      spec: number;
       name: string;
+      description?: string;
+      specs?: Array<number>;
     }
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
 
-    if (!user) {
-      throw new UnauthorizedException('Unauthorized');
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
     }
 
-    const result = this.questionsService.saveNewTech(body.name, body.spec);
+    const result = await this.questionsService.saveNewTech(body);
+
+    return result;
+  }
+
+  @Post('edit-tech')
+  async editTech(
+    @Req() request: Request,
+    @Body()
+    body: {
+      id: number;
+      name?: string;
+      description?: string;
+      specs?: Array<number>;
+    }
+  ) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
+    }
+
+    const result = await this.questionsService.editTech(body);
 
     return result;
   }
 
   @Get('get-techs')
-  async getTechs(@Query() query: { spec?: string }, @Req() request: Request) {
+  async getTechs(@Query() query: { specs?: string }) {
+    const result = await this.questionsService.getTechs(query.specs ? query.specs.split(',').map((el) => +el) : undefined);
+
+    return result;
+  }
+
+  @Get('get-specs')
+  async getAllSpecs(@Query() query: { spec?: string }) {
+    const result = await this.questionsService.getAllSpecs();
+
+    return result;
+  }
+
+  @Post('add-spec')
+  async saveSpec(
+    @Req() request: Request,
+    @Body()
+    body: {
+      name: string;
+      techs?: Array<number>;
+    }
+  ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
 
-    if (!user) {
-      throw new UnauthorizedException('Unauthorized');
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
     }
 
-    const result = await this.questionsService.getTechs(query.spec);
+    const result = await this.questionsService.saveNewSpec(body);
+
+    return result;
+  }
+
+  @Delete('delete-tech')
+  async deleteTech(@Req() request: Request, @Body() body: { id: number }) {
+    console.log(body);
+
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
+    }
+
+    const result = await this.questionsService.deleteTechById(body.id);
+
+    return result;
+  }
+
+  @Post('edit-spec')
+  async editSpec(
+    @Req() request: Request,
+    @Body()
+    body: {
+      id: number;
+      name?: string;
+      techs?: Array<number>;
+    }
+  ) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
+    }
+
+    const result = await this.questionsService.editSpec(body);
+
+    return result;
+  }
+
+  @Delete('delete-spec')
+  async deleteSpec(@Req() request: Request, @Body() body: { id: number }) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
+    }
+
+    const result = await this.questionsService.deleteSpecById(body.id);
 
     return result;
   }

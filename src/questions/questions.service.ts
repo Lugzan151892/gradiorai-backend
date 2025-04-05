@@ -1,7 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IQuestion } from '../utils/interfaces/questions';
-import { ETEST_SPEC } from 'src/utils/interfaces/enums';
 
 @Injectable()
 export class QuestionsService {
@@ -29,11 +28,7 @@ export class QuestionsService {
           ...(question.techs?.length
             ? {
                 technologies: {
-                  createMany: {
-                    data: question.techs.map((techId) => ({
-                      technologyId: techId,
-                    })),
-                  },
+                  connect: question.techs.map((id) => ({ id })),
                 },
               }
             : {}),
@@ -56,6 +51,52 @@ export class QuestionsService {
     return result;
   }
 
+  async editQuestions(question: Required<IQuestion>) {
+    const isQuestionsExist = await this.prisma.question.findUnique({
+      where: {
+        id: question.id,
+      },
+    });
+
+    if (!isQuestionsExist) {
+      throw new HttpException(`Question with id ${question.id} not found`, HttpStatus.BAD_REQUEST);
+    }
+
+    await this.prisma.response.deleteMany({
+      where: { question_id: question.id },
+    });
+
+    const updatedQuestion = await this.prisma.question.update({
+      where: {
+        id: question.id,
+      },
+      data: {
+        question: question.question,
+        ...(question.level.length ? { level: question.level[0] } : {}),
+        responses: {
+          create: question.responses.map((r) => ({
+            answer: r.answer,
+            correct: r.correct,
+          })),
+        },
+        ...(question.techs?.length
+          ? {
+              technologies: {
+                set: question.techs.map((techId) => ({
+                  id: techId,
+                })),
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return updatedQuestion;
+  }
+
   async getNonPassedQuestions(level: number, amount: number, userId?: number, techs?: number[]) {
     const unansweredQuestions = await this.prisma.question.findMany({
       take: amount,
@@ -76,7 +117,7 @@ export class QuestionsService {
           ? {
               technologies: {
                 some: {
-                  technologyId: { in: techs },
+                  id: { in: techs },
                 },
               },
             }
@@ -94,22 +135,28 @@ export class QuestionsService {
     return unansweredQuestions;
   }
 
-  async saveNewTech(name: string, spec: number) {
-    const isSpecExist = await this.prisma.technology.findUnique({
+  async saveNewTech(body: { name: string; description?: string; specs?: Array<number> }) {
+    const isTechExist = await this.prisma.technology.findUnique({
       where: {
-        name: name,
-        spec: spec,
+        name: body.name,
       },
     });
 
-    if (isSpecExist) {
-      throw new HttpException(`Technology with name ${name} in spec ${ETEST_SPEC[spec]} already exist`, HttpStatus.BAD_REQUEST);
+    if (isTechExist) {
+      throw new HttpException(`Technology with name ${body.name} already exist`, HttpStatus.BAD_REQUEST);
     }
 
     const createdTech = await this.prisma.technology.create({
       data: {
-        name: name,
-        spec: spec,
+        name: body.name,
+        description: body.description,
+        ...(body.specs?.length
+          ? {
+              specialization: {
+                connect: body.specs.map((id) => ({ id })),
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -119,19 +166,58 @@ export class QuestionsService {
     return createdTech;
   }
 
-  async getTechs(spec?: string) {
+  async editTech(body: { id: number; name?: string; description?: string; specs?: Array<number> }) {
+    const isTechExist = await this.prisma.technology.findUnique({
+      where: {
+        id: body.id,
+      },
+    });
+
+    if (!isTechExist) {
+      throw new HttpException(`Technology with id ${body.id} not found`, HttpStatus.BAD_REQUEST);
+    }
+
+    const updatedTech = await this.prisma.technology.update({
+      where: {
+        id: body.id,
+      },
+      data: {
+        name: body.name,
+        description: body.description,
+        ...(body.specs?.length
+          ? {
+              specialization: {
+                set: body.specs.map((id) => ({ id })),
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return updatedTech;
+  }
+
+  async getTechs(specs: Array<number>) {
     const techs = await this.prisma.technology.findMany({
-      ...(spec
+      ...(specs && specs.length
         ? {
             where: {
-              spec: +spec,
+              specialization: {
+                some: {
+                  id: { in: specs },
+                },
+              },
             },
           }
         : {}),
       select: {
         id: true,
         name: true,
-        spec: true,
+        description: true,
+        specialization: true,
         _count: {
           select: { questions: true },
         },
@@ -160,6 +246,123 @@ export class QuestionsService {
     return result;
   }
 
+  async deleteTechById(techId: number) {
+    if (!techId) {
+      throw new HttpException('ID не указан', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.prisma.technology.delete({
+      where: {
+        id: techId,
+      },
+    });
+
+    return { message: 'Технология успешно удалена.' };
+  }
+
+  async saveNewSpec(body: { name: string; techs?: Array<number> }) {
+    const isSpecExist = await this.prisma.specialization.findUnique({
+      where: {
+        name: body.name,
+      },
+    });
+
+    if (isSpecExist) {
+      throw new HttpException(`Specialization with name ${body.name} already exist`, HttpStatus.BAD_REQUEST);
+    }
+
+    const createdSpec = await this.prisma.specialization.create({
+      data: {
+        name: body.name,
+        ...(body.techs?.length
+          ? {
+              technology: {
+                connect: body.techs.map((id) => ({ id })),
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return createdSpec;
+  }
+
+  async editSpec(body: { id: number; name?: string; techs?: Array<number> }) {
+    const isSpecExist = await this.prisma.specialization.findUnique({
+      where: {
+        id: body.id,
+      },
+    });
+
+    if (!isSpecExist) {
+      throw new HttpException(`Technology with id ${body.id} not found`, HttpStatus.BAD_REQUEST);
+    }
+
+    const updatedSpec = await this.prisma.specialization.update({
+      where: {
+        id: body.id,
+      },
+      data: {
+        name: body.name,
+        ...(body.techs?.length
+          ? {
+              technology: {
+                set: body.techs.map((id) => ({ id })),
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return updatedSpec;
+  }
+
+  async getAllSpecs() {
+    const specs = await this.prisma.specialization.findMany({
+      select: {
+        id: true,
+        name: true,
+        technology: true,
+      },
+    });
+
+    return specs;
+  }
+
+  async getSpecById(specId: number) {
+    const result = await this.prisma.specialization.findMany({
+      where: {
+        id: specId,
+      },
+    });
+
+    if (!result) {
+      throw new HttpException(`Specialization with id ${specId} not found`, HttpStatus.BAD_REQUEST);
+    }
+
+    return result;
+  }
+
+  async deleteSpecById(specId: number) {
+    if (!specId) {
+      throw new HttpException('ID не указан', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.prisma.specialization.delete({
+      where: {
+        id: specId,
+      },
+    });
+
+    return { message: 'Специализация успешно удалена.' };
+  }
+
   async getPassedQuestionsByUser(level: number, userId: number, techs: number[]) {
     const passedQuestions = await this.prisma.question.findMany({
       where: {
@@ -173,7 +376,7 @@ export class QuestionsService {
           ? {
               technologies: {
                 some: {
-                  technologyId: { in: techs },
+                  id: { in: techs },
                 },
               },
             }
