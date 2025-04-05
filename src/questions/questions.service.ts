@@ -1,7 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IQuestion } from '../utils/interfaces/questions';
-import { ETEST_SPEC } from 'src/utils/interfaces/enums';
 
 @Injectable()
 export class QuestionsService {
@@ -29,11 +28,7 @@ export class QuestionsService {
           ...(question.techs?.length
             ? {
                 technologies: {
-                  createMany: {
-                    data: question.techs.map((techId) => ({
-                      technologyId: techId,
-                    })),
-                  },
+                  connect: question.techs.map((id) => ({ id })),
                 },
               }
             : {}),
@@ -56,6 +51,52 @@ export class QuestionsService {
     return result;
   }
 
+  async editQuestions(question: Required<IQuestion>) {
+    const isQuestionsExist = await this.prisma.question.findUnique({
+      where: {
+        id: question.id,
+      },
+    });
+
+    if (!isQuestionsExist) {
+      throw new HttpException(`Question with id ${question.id} not found`, HttpStatus.BAD_REQUEST);
+    }
+
+    await this.prisma.response.deleteMany({
+      where: { question_id: question.id },
+    });
+
+    const updatedQuestion = await this.prisma.question.update({
+      where: {
+        id: question.id,
+      },
+      data: {
+        question: question.question,
+        ...(question.level.length ? { level: question.level[0] } : {}),
+        responses: {
+          create: question.responses.map((r) => ({
+            answer: r.answer,
+            correct: r.correct,
+          })),
+        },
+        ...(question.techs?.length
+          ? {
+              technologies: {
+                set: question.techs.map((techId) => ({
+                  id: techId,
+                })),
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return updatedQuestion;
+  }
+
   async getNonPassedQuestions(level: number, amount: number, userId?: number, techs?: number[]) {
     const unansweredQuestions = await this.prisma.question.findMany({
       take: amount,
@@ -76,7 +117,7 @@ export class QuestionsService {
           ? {
               technologies: {
                 some: {
-                  technologyId: { in: techs },
+                  id: { in: techs },
                 },
               },
             }
@@ -335,7 +376,7 @@ export class QuestionsService {
           ? {
               technologies: {
                 some: {
-                  technologyId: { in: techs },
+                  id: { in: techs },
                 },
               },
             }

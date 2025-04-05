@@ -46,6 +46,31 @@ export class QuestionsController {
     return savedQuestion;
   }
 
+  @Post('edit')
+  async editQuestion(
+    @Req() request: Request,
+    @Body()
+    body: {
+      id: number;
+      question: string;
+      level: Array<number>;
+      responses: IQuestionResponse[];
+      techs: number[];
+    }
+  ) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not and admin!');
+    }
+
+    const savedQuestion = await this.questionsService.editQuestions(body);
+
+    return savedQuestion;
+  }
+
   @Get('get')
   async getQuestions(@Query() query: { level?: number; user_id?: number }) {
     if (!query.level) {

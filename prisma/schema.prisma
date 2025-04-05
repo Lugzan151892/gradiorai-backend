@@ -21,7 +21,8 @@ model Question {
   saved_by_id  Int
   saved_by     User                   @relation(fields: [saved_by_id], references: [id])
   responses    Response[]
-  technologies QuestionTechnology[]
+  technologies Technology[]
+  QuestionTechnology       QuestionTechnology[]
 }
 
 model Technology {
@@ -29,8 +30,9 @@ model Technology {
   name                     String                     @unique
   description              String?                    @default("")
   specialization           Specialization[]
-  questions                QuestionTechnology[]
+  questions                Question[]
   SpecializationTechnology SpecializationTechnology[]
+  QuestionTechnology       QuestionTechnology[]
 }
 
 model Specialization {
