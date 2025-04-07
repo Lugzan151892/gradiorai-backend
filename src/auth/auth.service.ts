@@ -418,7 +418,7 @@ export class AuthService {
     });
 
     await transporter.sendMail({
-      from: '"Interview Ready" <no-reply@interviewready.ru>',
+      from: '"Gradior AI" <no-reply@interviewready.ru>',
       to: email,
       subject: 'Verification Code',
       text: `Your verification code is: ${code}`,
