@@ -119,21 +119,21 @@ export class AuthController {
     };
   }
 
-  @Get('user')
-  async getUserData(@Req() request: Request) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+  // @Get('user')
+  // async getUserData(@Req() request: Request) {
+  //   const accessToken = request.headers['authorization']?.split(' ')[1];
+  //   const refreshToken = request.cookies['refresh_token'];
+  //   const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
+  //   if (!user) {
+  //     throw new UnauthorizedException('User not found');
+  //   }
 
-    return {
-      data: user.user,
-      accessToken: user.accessToken,
-    };
-  }
+  //   return {
+  //     data: user.user,
+  //     accessToken: user.accessToken,
+  //   };
+  // }
 
   @Get('logout')
   async logout(@Req() request: Request, @Res({ passthrough: true }) res: Response) {

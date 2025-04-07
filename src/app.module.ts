@@ -11,6 +11,7 @@ import { IpLoggerMiddleware } from './middleware/ip-logger.middleware';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './config/winston/winston.config';
 import { RedisModule } from '@nestjs-modules/ioredis';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
     AuthModule,
     QuestionsModule,
     SystemModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],
