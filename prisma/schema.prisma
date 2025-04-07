@@ -78,6 +78,14 @@ model RefreshToken {
   updated_at DateTime @updatedAt
 }
 
+model Reviews {
+  id           Int                    @id @default(autoincrement())
+  text         String
+  rating       Int
+  saved_by_id  Int
+  saved_by     User                   @relation(fields: [saved_by_id], references: [id])
+}
+
 model User {
   id               Int                    @id @default(autoincrement())
   email            String                 @unique
@@ -88,6 +96,7 @@ model User {
   questions_passed UserQuestionProgress[]
   saved_question   Question[]
   refresh_token    RefreshToken?
+  test_reviews     Reviews[]
 }
 
 model UserQuestionProgress {
