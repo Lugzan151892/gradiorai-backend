@@ -7,6 +7,8 @@ import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 
+const REDIS_TTL = 60 * 60 * 24 * 3;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -192,7 +194,7 @@ export class AuthService {
 
   async getUserFromTokens(accessToken?: string, refreshToken?: string) {
     if (!accessToken && !refreshToken) {
-      throw new UnauthorizedException('Unauthorized');
+      return null;
     }
 
     try {

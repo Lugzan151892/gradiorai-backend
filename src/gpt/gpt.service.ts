@@ -117,7 +117,7 @@ export class GptService {
 
     if (questionsFromDatabase.length >= questionsAmount) {
       return {
-        response: questionsFromDatabase.slice(0, questionsAmount),
+        response: { questions: questionsFromDatabase.slice(0, questionsAmount) },
         usage: null,
       };
     } else {
