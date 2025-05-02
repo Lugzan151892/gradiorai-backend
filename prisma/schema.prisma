@@ -64,7 +64,7 @@ model Response {
   id          Int      @id @default(autoincrement())
   answer      String
   correct     Boolean
-  question    Question @relation(fields: [question_id], references: [id])
+  question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
   question_id Int
 }
 

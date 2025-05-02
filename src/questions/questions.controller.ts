@@ -257,4 +257,20 @@ export class QuestionsController {
 
     return result;
   }
+
+  /** Удаление вопроса */
+  @Delete('delete')
+  async deleteQuestion(@Req() request: Request, @Body() body: { id: number }) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+
+    if (!user || !user.user.admin) {
+      throw new UnauthorizedException('Unauthorized or not an Admin');
+    }
+
+    const result = await this.questionsService.deleteQuestionById(body.id);
+
+    return result;
+  }
 }
