@@ -451,4 +451,30 @@ export class QuestionsService {
 
     return questions;
   }
+
+  async deleteQuestionById(questionId: number) {
+    if (!questionId) {
+      throw new HttpException('ID не указан', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.prisma.questionTechnology.deleteMany({
+      where: {
+        questionId,
+      },
+    });
+
+    await this.prisma.userQuestionProgress.deleteMany({
+      where: {
+        question_id: questionId,
+      },
+    });
+
+    await this.prisma.question.delete({
+      where: {
+        id: questionId,
+      },
+    });
+
+    return { message: 'Вопрос успешно удален.' };
+  }
 }

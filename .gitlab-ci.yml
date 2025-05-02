@@ -15,4 +15,4 @@ deploy:
     - chmod 700 ~/.ssh
     - echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
   script:
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && git reset --hard origin/master && git clean -fd && git pull origin master --rebase && npm install && npx prisma migrate deploy && npm run build && pm2 restart 'interview-ready-back' && pm2 save"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && git reset --hard origin/master && git clean -fd && git pull origin master --rebase && npm install && npx prisma db push && npm run build && pm2 restart 'interview-ready-back' && pm2 save"
