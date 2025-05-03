@@ -131,7 +131,7 @@ export class GptService {
       $PASSED_QUESTIONS: passedQuestions.map((question) => question.question).join(', '),
       $QUESTIONS_AMOUNT: isAdmin ? settings.admin_amount : settings.user_amount,
       $SKILL_LEVEL: getSkillLevel(params.level),
-      $QUESTION_TECHS: questionTechs.map((el) => el.name).join(', '),
+      $QUESTION_TECHS: questionTechs.map((el) => `${el.name} (${el.description})`).join(', '),
     };
 
     const openai = new OpenAI({ apiKey: apiKey });
