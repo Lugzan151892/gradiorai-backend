@@ -97,6 +97,18 @@ model User {
   saved_question   Question[]
   refresh_token    RefreshToken?
   test_reviews     Reviews[]
+  last_login       DateTime?
+  last_ip          String?
+  ip_log           UserIpLog[]
+}
+
+model UserIpLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  ip        String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, ip])
 }
 
 model UserQuestionProgress {

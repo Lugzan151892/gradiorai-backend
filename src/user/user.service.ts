@@ -28,4 +28,26 @@ export class UserService {
 
     return result;
   }
+
+  async getUsers() {
+    const result = await this.prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        created_at: true,
+        updated_at: true,
+        last_ip: true,
+        last_login: true,
+        ip_log: {
+          take: 3,
+          orderBy: {
+            createdAt: 'desc', // по убыванию времени — последние сверху
+          },
+        },
+        admin: true,
+      },
+    });
+
+    return result;
+  }
 }
