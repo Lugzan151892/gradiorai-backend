@@ -106,7 +106,7 @@ export class QuestionsService {
               NOT: {
                 users: {
                   some: {
-                    user_id: userId, // пользователь не прошел этот вопрос
+                    user_id: userId,
                   },
                 },
               },
@@ -129,6 +129,7 @@ export class QuestionsService {
         saved_by_id: true,
         level: true,
         responses: true,
+        technologies: true,
       },
     });
 
