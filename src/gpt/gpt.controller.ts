@@ -20,11 +20,10 @@ export class GptController {
   async generate(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-    @Body() body: { level: number; spec: number; password: string; techs?: number[] }
+    @Body() body: { level: number; spec: number; techs?: number[] }
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const isPasswordCorrect = process.env.TEST_SECRET === body.password;
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
 
     if (!user) {
@@ -55,10 +54,6 @@ export class GptController {
           httpOnly: true,
         });
       }
-    }
-
-    if (!user?.user?.admin && !isPasswordCorrect) {
-      throw new HttpException({ message: `Неверный пароль!`, info: { type: 'password' } }, HttpStatus.BAD_REQUEST);
     }
 
     const data = await this.gptService.generateQuestions(body, user?.user.id, user?.user.admin);
