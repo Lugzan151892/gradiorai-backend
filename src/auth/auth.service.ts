@@ -192,7 +192,51 @@ export class AuthService {
     };
   }
 
-  async getUserFromTokens(accessToken?: string, refreshToken?: string) {
+  async updateUserSystemData(userId: number, userIp?: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        last_login: new Date(),
+        last_ip: userIp || undefined,
+      },
+    });
+
+    const existing = userIp
+      ? await this.prisma.userIpLog.findUnique({
+          where: {
+            userId_ip: {
+              userId,
+              ip: userIp,
+            },
+          },
+        })
+      : null;
+
+    if (!existing && userIp) {
+      await this.prisma.userIpLog.create({
+        data: {
+          userId,
+          ip: userIp,
+        },
+      });
+    }
+  }
+
+  async getUserFromTokens(
+    accessToken?: string,
+    refreshToken?: string,
+    userIp?: string
+  ): Promise<null | {
+    user: {
+      id: number;
+      email: string;
+      created_at: string;
+      updated_at: true;
+      admin: true;
+    };
+    accessToken: string;
+    refreshToken?: string;
+  }> {
     if (!accessToken && !refreshToken) {
       return null;
     }
@@ -213,6 +257,14 @@ export class AuthService {
                 email: true,
                 created_at: true,
                 updated_at: true,
+                last_ip: true,
+                last_login: true,
+                ip_log: {
+                  take: 3,
+                  orderBy: {
+                    createdAt: 'desc',
+                  },
+                },
                 admin: true,
               },
             })
@@ -220,6 +272,7 @@ export class AuthService {
       }
 
       if (user) {
+        await this.updateUserSystemData(user.id, userIp);
         return {
           user: user,
           accessToken: accessToken,
@@ -238,6 +291,14 @@ export class AuthService {
                 email: true,
                 created_at: true,
                 updated_at: true,
+                last_ip: true,
+                last_login: true,
+                ip_log: {
+                  take: 3,
+                  orderBy: {
+                    createdAt: 'desc',
+                  },
+                },
                 admin: true,
               },
             })
@@ -258,6 +319,8 @@ export class AuthService {
         }
 
         const accessToken = this.generateAccessToken(user.id);
+
+        await this.updateUserSystemData(user.id, userIp);
 
         return {
           user: user,

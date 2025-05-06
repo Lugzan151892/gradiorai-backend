@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from './user.service';
+import { getIpFromRequest } from '../utils/request';
 
 @Controller('user')
 export class UserController {
@@ -14,7 +15,8 @@ export class UserController {
   async getUserData(@Req() request: Request) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -37,7 +39,8 @@ export class UserController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -46,5 +49,24 @@ export class UserController {
     const result = await this.userService.createNewReview(body, user.user.id);
 
     return result;
+  }
+
+  @Get('users')
+  async getUsers(@Req() request: Request) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+
+    if (!user || !user?.user.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const users = await this.userService.getUsers();
+
+    return users;
   }
 }
