@@ -56,7 +56,7 @@ export class AuthService {
       }
     );
 
-    await this.prisma.refreshToken.create({
+    const savedToken = await this.prisma.refreshToken.create({
       data: {
         token: token,
         /** 30 days */
@@ -69,7 +69,7 @@ export class AuthService {
       },
     });
 
-    return token;
+    return savedToken.token;
   }
 
   async updateAccessToken(refreshToken: string) {
