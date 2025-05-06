@@ -14,6 +14,7 @@ import { AuthService } from '../auth/auth.service';
 import { Request } from 'express';
 import { IQuestionResponse } from '../utils/interfaces/questions';
 import { QuestionsService } from './questions.service';
+import { getIpFromRequest } from '../utils/request';
 
 @Controller('questions')
 export class QuestionsController {
@@ -35,7 +36,8 @@ export class QuestionsController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user) {
       throw new UnauthorizedException('Unauthorized');
@@ -60,7 +62,8 @@ export class QuestionsController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not and admin!');
@@ -94,7 +97,8 @@ export class QuestionsController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not an Admin');
@@ -118,7 +122,8 @@ export class QuestionsController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not an Admin');
@@ -154,7 +159,8 @@ export class QuestionsController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not an Admin');
@@ -171,7 +177,8 @@ export class QuestionsController {
 
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not an Admin');
@@ -194,7 +201,8 @@ export class QuestionsController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not an Admin');
@@ -209,7 +217,8 @@ export class QuestionsController {
   async deleteSpec(@Req() request: Request, @Body() body: { id: number }) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not an Admin');
@@ -230,7 +239,8 @@ export class QuestionsController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user) {
       throw new UnauthorizedException('Unauthorized');
@@ -245,7 +255,8 @@ export class QuestionsController {
   async getAllQuestions(@Req() request: Request, @Query() query: { only_mine: string; only_without_specs: string }) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user) {
       throw new UnauthorizedException('Unauthorized');
@@ -263,7 +274,8 @@ export class QuestionsController {
   async deleteQuestion(@Req() request: Request, @Body() body: { id: number }) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not an Admin');

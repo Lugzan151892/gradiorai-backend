@@ -4,6 +4,7 @@ import * as path from 'path';
 import { Response, Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { GptService, IGptSettings } from '../gpt/gpt.service';
+import { getIpFromRequest } from '../utils/request';
 
 @Controller('system')
 export class SystemController {
@@ -15,7 +16,8 @@ export class SystemController {
   async getLogs(@Res() res: Response, @Req() request: Request) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not an admin');
@@ -42,7 +44,8 @@ export class SystemController {
   async getGptSettings(@Req() request: Request) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not an admin');
@@ -63,7 +66,8 @@ export class SystemController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user || !user.user.admin) {
       throw new UnauthorizedException('Unauthorized or not Admin');
