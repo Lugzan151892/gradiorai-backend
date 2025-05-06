@@ -4,6 +4,7 @@ import { AuthService } from '../auth/auth.service';
 import { Request, Response } from 'express';
 import Redis from 'ioredis';
 import { InjectRedis } from '@nestjs-modules/ioredis';
+import { getIpFromRequest } from '../utils/request';
 
 const REDIS_TTL = 60 * 60 * 24 * 3;
 const generateKey = 'gpt-generate-limit';
@@ -24,10 +25,11 @@ export class GptController {
   ) {
     const accessToken = request.headers['authorization']?.split(' ')[1];
     const refreshToken = request.cookies['refresh_token'];
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken);
+    const ip = getIpFromRequest(request);
+
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
     if (!user) {
-      const ip = request.headers['x-forwarded-for'] || request.socket.remoteAddress;
       const isLocal = ip === '::1' || !ip;
 
       if (!isLocal) {
