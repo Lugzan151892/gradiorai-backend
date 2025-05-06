@@ -44,6 +44,7 @@ export class UserService {
             createdAt: 'desc', // по убыванию времени — последние сверху
           },
         },
+        questions_passed: true,
         admin: true,
       },
     });
