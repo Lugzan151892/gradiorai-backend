@@ -8,7 +8,8 @@ export class IpLoggerMiddleware implements NestMiddleware {
 
   use(req: Request, _: Response, next: NextFunction) {
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    winstonConfig.info(`Request from IP: ${ip}`);
+    const endpoint = req.originalUrl;
+    winstonConfig.info(`Incoming ${req.method} request from IP: ${ip} to endpoint: ${endpoint}`);
     next();
   }
 }

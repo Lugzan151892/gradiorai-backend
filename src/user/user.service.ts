@@ -5,24 +5,27 @@ import { PrismaService } from '../prisma/prisma.service';
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createNewReview(data: { comment?: string; rating?: number }, userId: number) {
+  async createNewReview(data: { comment?: string; rating?: number }, userId?: number, ip?: string) {
+    const reviewData: {
+      text: string;
+      rating: number | null;
+      saved_by?: { connect: { id: number } };
+      ip?: string;
+    } = {
+      text: data.comment || '',
+      rating: data.rating ?? null,
+    };
+
+    if (userId) {
+      reviewData.saved_by = { connect: { id: userId } };
+    } else if (ip) {
+      reviewData.ip = ip;
+    }
+
     const result = await this.prisma.reviews.create({
-      data: {
-        text: data.comment || '',
-        rating: data.rating || 0,
-        saved_by: { connect: { id: userId } },
-      },
+      data: reviewData,
       select: {
-        text: true,
-        rating: true,
-        saved_by: {
-          select: {
-            id: true,
-            admin: true,
-            email: true,
-            created_at: true,
-          },
-        },
+        id: true,
       },
     });
 
@@ -46,6 +49,28 @@ export class UserService {
         },
         questions_passed: true,
         admin: true,
+      },
+    });
+
+    return result;
+  }
+
+  async getAllReviews() {
+    const result = await this.prisma.reviews.findMany({
+      select: {
+        id: true,
+        created_at: true,
+        text: true,
+        rating: true,
+        checked: true,
+        saved_by: {
+          select: {
+            id: true,
+            email: true,
+            admin: true,
+          },
+        },
+        ip: true,
       },
     });
 
