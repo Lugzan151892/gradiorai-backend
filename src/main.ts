@@ -12,10 +12,18 @@ async function bootstrap() {
   });
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 5000;
+  const rawOrigins = configService.get<string>('CORS_ORIGIN');
+  const allowedOrigins = rawOrigins.split(',');
   app.enableCors({
-    origin: 'http://localhost:3000',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   });
   app.use(cookieParser());
   app.useGlobalFilters(new GlobalExceptionFilter());
