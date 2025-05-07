@@ -80,10 +80,13 @@ model RefreshToken {
 
 model Reviews {
   id           Int                    @id @default(autoincrement())
+  created_at   DateTime               @default(now())
   text         String
-  rating       Int
-  saved_by_id  Int
-  saved_by     User                   @relation(fields: [saved_by_id], references: [id])
+  rating       Int?
+  saved_by_id  Int?
+  saved_by     User?                  @relation(fields: [saved_by_id], references: [id])
+  ip           String?
+  checked      Boolean                @default(false)
 }
 
 model User {
