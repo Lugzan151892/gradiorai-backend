@@ -108,12 +108,9 @@ export class GptService {
       passedQuestions = await this.questionService.getPassedQuestionsByUser(params.level, userId, params.techs);
     }
 
-    const questionsFromDatabase = await this.questionService.getNonPassedQuestions(
-      params.level,
-      questionsAmount,
-      userId,
-      params.techs
-    );
+    const questionsFromDatabase = isAdmin
+      ? []
+      : await this.questionService.getNonPassedQuestions(params.level, questionsAmount, userId, params.techs);
 
     if (questionsFromDatabase.length >= questionsAmount) {
       return {
