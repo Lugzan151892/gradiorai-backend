@@ -42,11 +42,7 @@ export class UserController {
     const ip = getIpFromRequest(request);
     const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    const result = await this.userService.createNewReview(body, user.user.id);
+    const result = await this.userService.createNewReview(body, user?.user?.id, ip);
 
     return result;
   }
@@ -68,5 +64,24 @@ export class UserController {
     const users = await this.userService.getUsers();
 
     return users;
+  }
+
+  @Get('reviews')
+  async getReviews(@Req() request: Request) {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+
+    if (!user || !user?.user.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const reviews = await this.userService.getAllReviews();
+
+    return reviews;
   }
 }

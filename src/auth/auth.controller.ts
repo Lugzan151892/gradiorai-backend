@@ -86,8 +86,7 @@ export class AuthController {
       code: string;
       password: string;
       repeated_password: string;
-    },
-    @Res({ passthrough: true }) response: Response
+    }
   ) {
     if (body.password !== body.repeated_password) {
       throw new HttpException({ message: 'Введенные пароли не совпадают', info: { type: 'password' } }, HttpStatus.BAD_REQUEST);
