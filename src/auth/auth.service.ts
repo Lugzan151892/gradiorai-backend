@@ -174,21 +174,11 @@ export class AuthService {
         user_id: user.id,
       },
     });
-
-    if (savedToken) {
-      await this.prisma.refreshToken.delete({
-        where: {
-          user_id: user.id,
-        },
-      });
-    }
-
-    const refreshToken = await this.generateRefreshToken(user.id);
     const accessToken = this.generateAccessToken(user.id);
 
     return {
       accessToken: accessToken,
-      refreshToken: refreshToken,
+      refreshToken: savedToken.token,
     };
   }
 
@@ -314,7 +304,7 @@ export class AuthService {
           },
         });
 
-        if (!savedRefresh || savedRefresh.token !== refreshToken) {
+        if (!savedRefresh) {
           return null;
         }
 
