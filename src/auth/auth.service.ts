@@ -169,16 +169,25 @@ export class AuthService {
       throw new HttpException({ message: 'Неверный пароль', info: { type: 'password' } }, HttpStatus.BAD_REQUEST);
     }
 
+    let refreshToken: string;
+
     const savedToken = await this.prisma.refreshToken.findUnique({
       where: {
         user_id: user.id,
       },
     });
+
     const accessToken = this.generateAccessToken(user.id);
+
+    if (savedToken) {
+      refreshToken = savedToken.token;
+    } else {
+      refreshToken = await this.generateRefreshToken(user.id);
+    }
 
     return {
       accessToken: accessToken,
-      refreshToken: savedToken.token,
+      refreshToken: refreshToken,
     };
   }
 
