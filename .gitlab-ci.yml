@@ -40,13 +40,12 @@ deploy_test:
       set -xe
       echo '✅ Connected'
       cd $DEPLOY_PATH_PREPROD
-      git status
-      git reset --hard origin/preprod
-      git clean -fd
-      git pull origin preprod --rebase
-      npm install
-      npx prisma db push
-      npm run build
-      pm2 restart 'interview-ready-back-preprod'
+      git status &&
+      git checkout preprod &&
+      git pull &&
+      npm install &&
+      npx prisma db push &&
+      npm run build &&
+      pm2 restart 'interview-ready-back-preprod' &&
       pm2 save
     "
