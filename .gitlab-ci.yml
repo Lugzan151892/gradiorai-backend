@@ -37,7 +37,7 @@ deploy_test:
   script:
     - echo "Start SSH command"
     - ssh $DEPLOY_USER@$DEPLOY_HOST "
-      set -xe  # чтобы видеть конкретную ошибку
+      set -xe
       echo '✅ Connected'
       cd $DEPLOY_PATH_PREPROD
       git status
