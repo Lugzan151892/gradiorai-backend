@@ -30,11 +30,4 @@ deploy_test:
     - chmod 700 ~/.ssh
     - echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
   script:
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "
-      cd $DEPLOY_PATH_PREPROD &&
-      git pull &&
-      npm install &&
-      npx prisma db push &&
-      npm run build &&
-      pm2 restart 'interview-ready-back-preprod' || pm2 start npm --name 'interview-ready-back-preprod' -- start &&
-      pm2 save"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH_PREPROD && git reset --hard origin/preprod && git clean -fd && git pull origin preprod --rebase && npm install && npx prisma db push && npm run build && pm2 restart 'interview-ready-back-preprod' && pm2 save"
