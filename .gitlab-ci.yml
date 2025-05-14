@@ -34,7 +34,7 @@ deploy_test:
   script:
     - ssh $DEPLOY_USER@$DEPLOY_HOST "
       set -e
-      cd $DEPLOY_PATH &&
+      cd $DEPLOY_PATH_PREPROD &&
       git reset --hard origin/preprod &&
       git clean -fd &&
       git pull origin preprod --rebase &&
