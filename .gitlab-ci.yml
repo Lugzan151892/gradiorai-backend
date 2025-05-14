@@ -36,28 +36,29 @@ deploy_test:
     - ssh -T $DEPLOY_USER@$DEPLOY_HOST || echo "SSH failed"
   script:
     - echo "Start SSH command"
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "
-      set -xe
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_HOST '
+        set -xe
 
-      echo '✅ Connected'
-      
-      echo '📁 DEPLOY_PATH_PREPROD = $DEPLOY_PATH_PREPROD'
-      cd $DEPLOY_PATH_PREPROD
+        echo "✅ Connected"
+        
+        echo "📁 DEPLOY_PATH_PREPROD = $DEPLOY_PATH_PREPROD"
+        cd $DEPLOY_PATH_PREPROD
 
-      echo '📍 Current directory:'
-      pwd
+        echo "📍 Current directory:"
+        pwd
 
-      echo '📦 Listing contents:'
-      ls -la
+        echo "📦 Listing contents:"
+        ls -la
 
-      echo '🔍 Git status check:'
-      git status
+        echo "🔍 Git status check:"
+        git status
 
-      git checkout preprod
-      git pull
-      npm install
-      npx prisma db push
-      npm run build &&
-      pm2 restart 'interview-ready-back-preprod'
-      pm2 save
-    "
+        git checkout preprod
+        git pull
+        npm install
+        npx prisma db push
+        npm run build
+        pm2 restart "interview-ready-back-preprod"
+        pm2 save
+      '
