@@ -2,6 +2,7 @@ image: ubuntu:latest
 
 stages:
   - deploy
+  - deploy-test
 
 deploy:
   stage: deploy
@@ -16,3 +17,24 @@ deploy:
     - echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
   script:
     - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && git reset --hard origin/master && git clean -fd && git pull origin master --rebase && npm install && npx prisma db push && npm run build && pm2 restart 'interview-ready-back' && pm2 save"
+
+deploy_test:
+  stage: deploy-test
+    only:
+      - preprod
+    before_script:
+      - apt update -y && apt install -y openssh-client rsync
+      - eval $(ssh-agent -s)
+      - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+      - mkdir -p ~/.ssh
+      - chmod 700 ~/.ssh
+      - echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+    script:
+      - ssh $DEPLOY_USER@$DEPLOY_HOST "
+        cd $DEPLOY_PATH_PREPROD && 
+        git pull && 
+        npm install && 
+        npx prisma db push && 
+        npm run build && 
+        pm2 restart 'interview-ready-back-preprod' || pm2 start npm --name 'interview-ready-back-preprod' -- start &&
+        pm2 save"
