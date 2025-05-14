@@ -25,21 +25,28 @@ deploy_test:
   variables:
     GIT_STRATEGY: clone
   before_script:
+    - set -x
     - apt update -y && apt install -y openssh-client rsync
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - ls -la ~/.ssh
+    - ssh -T $DEPLOY_USER@$DEPLOY_HOST || echo "SSH failed"
   script:
+    - echo "Start SSH command"
     - ssh $DEPLOY_USER@$DEPLOY_HOST "
-      set -e
-      cd $DEPLOY_PATH_PREPROD &&
-      git reset --hard origin/preprod &&
-      git clean -fd &&
-      git pull origin preprod --rebase &&
-      npm install &&
-      npx prisma db push &&
-      npm run build &&
-      pm2 restart 'interview-ready-back-preprod' &&
-      pm2 save"
+      set -xe  # чтобы видеть конкретную ошибку
+      echo '✅ Connected'
+      cd $DEPLOY_PATH_PREPROD
+      git status
+      git reset --hard origin/preprod
+      git clean -fd
+      git pull origin preprod --rebase
+      npm install
+      npx prisma db push
+      npm run build
+      pm2 restart 'interview-ready-back-preprod'
+      pm2 save
+    "
