@@ -58,6 +58,6 @@ deploy_test:
       npm install
       npx prisma db push
       npm run build &&
-      pm2 restart 'interview-ready-back-preprod' &&
+      pm2 restart 'interview-ready-back-preprod'
       pm2 save
     "
