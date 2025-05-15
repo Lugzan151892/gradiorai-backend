@@ -22,19 +22,42 @@ deploy_test:
   stage: deploy-test
   only:
     - preprod
+  variables:
+    GIT_STRATEGY: clone
   before_script:
+    - set -x
     - apt update -y && apt install -y openssh-client rsync
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - ls -la ~/.ssh
+    - ssh -T $DEPLOY_USER@$DEPLOY_HOST || echo "SSH failed"
   script:
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "
-      cd $DEPLOY_PATH_PREPROD &&
-      git pull &&
-      npm install &&
-      npx prisma db push &&
-      npm run build &&
-      pm2 restart 'interview-ready-back-preprod' || pm2 start npm --name 'interview-ready-back-preprod' -- start &&
-      pm2 save"
+    - echo "Start SSH command"
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_HOST "
+        set -xe
+
+        echo '✅ Connected'
+        echo '📁 DEPLOY_PATH_PREPROD = $DEPLOY_PATH_PREPROD'
+        cd $DEPLOY_PATH_PREPROD
+
+        echo '📍 Current directory:'
+        pwd
+
+        echo '📦 Listing contents:'
+        ls -la
+
+        echo '🔍 Git status check:'
+        git status
+
+        git checkout preprod
+        git pull
+        npm install
+        npx prisma db push
+        npm run build
+        pm2 restart 'interview-ready-back-preprod'
+        pm2 save
+      "

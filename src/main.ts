@@ -13,7 +13,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 5000;
   const rawOrigins = configService.get<string>('CORS_ORIGIN');
-  const allowedOrigins = rawOrigins.split(',');
+  const allowedOrigins = rawOrigins.split(',').map((origin) => origin.trim().replace(/\/$/, ''));
   Logger.log('info', `allowedOrigins: ${allowedOrigins}`);
 
   app.enableCors({
