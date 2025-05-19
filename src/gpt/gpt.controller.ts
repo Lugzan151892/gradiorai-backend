@@ -1,13 +1,22 @@
-import { Body, Controller, HttpException, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res, Sse } from '@nestjs/common';
 import { GptService } from './gpt.service';
 import { AuthService } from '../auth/auth.service';
 import { Request, Response } from 'express';
 import Redis from 'ioredis';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { getIpFromRequest } from '../utils/request';
+import { Observable } from 'rxjs';
 
 const REDIS_TTL = 60 * 60 * 24 * 3;
 const generateKey = 'gpt-generate-limit';
+
+interface MessageEvent {
+  name: 'chunk' | 'done' | 'error';
+  data: {
+    text: string;
+    type: 'chunk' | 'done' | 'error';
+  };
+}
 
 @Controller('gpt')
 export class GptController {
@@ -61,5 +70,17 @@ export class GptController {
     const data = await this.gptService.generateQuestions(body, user?.user.id, user?.user.admin);
 
     return data;
+  }
+
+  @Post('interview/message')
+  send(@Body() body: { content: string }) {
+    this.gptService.handleMessage(body.content);
+    return { status: 'ok' };
+  }
+
+  @Get('interview/stream')
+  @Sse()
+  stream(): Observable<MessageEvent> {
+    return this.gptService.getStream();
   }
 }
