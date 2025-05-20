@@ -12,6 +12,7 @@ import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './config/winston/winston.config';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { UserModule } from './user/user.module';
+import { InterviewModule } from './interview/interview.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { UserModule } from './user/user.module';
     QuestionsModule,
     SystemModule,
     UserModule,
+    InterviewModule,
   ],
   controllers: [AppController],
   providers: [AppService],
