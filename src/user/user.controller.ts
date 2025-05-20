@@ -60,7 +60,7 @@ export class UserController {
   async getReviews(@Req() request: Request) {
     const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user?.user.admin) {
+    if (!user?.user.admin) {
       throw new HttpException(
         { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
         HttpStatus.BAD_REQUEST

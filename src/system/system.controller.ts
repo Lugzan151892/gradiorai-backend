@@ -17,7 +17,10 @@ export class SystemController {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user.user?.admin) {
-      throw new UnauthorizedException('Unauthorized or not an admin');
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const logFilePath = path.join(__dirname, '..', '..', 'logs', 'combined.log');
@@ -42,7 +45,10 @@ export class SystemController {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user.user?.admin) {
-      throw new UnauthorizedException('Unauthorized or not an admin');
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const settings = await this.gptService.getSettings();
@@ -61,7 +67,10 @@ export class SystemController {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user.user?.admin) {
-      throw new UnauthorizedException('Unauthorized or not Admin');
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const result = await this.gptService.updateGptSettings(body.settings);
