@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { set, z } from 'zod';
+import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import {
   defaultAdminAmount,
@@ -17,6 +17,8 @@ import {
 import { ESKILL_LEVEL } from '../utils/interfaces/enums';
 import { QuestionsService } from '../questions/questions.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { Observable, Subject } from 'rxjs';
+import { Stream } from 'openai/streaming';
 
 export interface IGptSettings {
   id?: number;
@@ -44,8 +46,28 @@ const GPTResponse = z.object({
   ),
 });
 
+const interviewGptResponse = z.object({
+  message: z.object({
+    text: z.string(),
+  }),
+  finished: z.boolean(),
+  approved: z.boolean(),
+  result: z.string(),
+  recomendations: z.string(),
+});
+
+interface MessageEvent {
+  name: 'chunk' | 'done' | 'error';
+  data: {
+    text: string;
+    type: 'chunk' | 'done' | 'error';
+  };
+}
+
 @Injectable()
 export class GptService {
+  private stream$ = new Subject<MessageEvent>();
+
   constructor(
     private readonly configService: ConfigService,
     private readonly questionService: QuestionsService,
@@ -155,5 +177,59 @@ export class GptService {
       },
       usage: completion.usage,
     };
+  }
+
+  getStream(): Observable<MessageEvent> {
+    return this.stream$.asObservable();
+  }
+
+  async handleMessage(content: string) {
+    const apiKey = this.configService.get<string>('CHAT_SECRET');
+    const openai = new OpenAI({ apiKey: apiKey });
+    const completion: Stream<OpenAI.Chat.Completions.ChatCompletionChunk> = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      store: true,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Ты часть сервиса по подготовке к собеседованиям. Твоя задача провести собеседование с потенциальным кандидатом, задавать ему вопросы, которые были бы заданы на реальном собеседовании и в конце дать оценку его знаниям',
+        },
+        {
+          role: 'user',
+          content: 'Меня зовут Денис, я начинающий frontend разработчик ' + content,
+        },
+      ],
+      temperature: 1,
+      stream: true,
+    });
+
+    let fullResponse = '';
+
+    for await (const chunk of completion) {
+      const delta = chunk.choices?.[0]?.delta;
+      const contentPart = delta?.content;
+
+      if (contentPart) {
+        fullResponse += contentPart;
+
+        this.stream$.next({
+          name: 'chunk',
+          data: {
+            text: contentPart,
+            type: 'chunk',
+          },
+        });
+      }
+    }
+    this.stream$.next({
+      name: 'done',
+      data: {
+        text: '',
+        type: 'done',
+      },
+    });
+
+    console.log('Save to BD: ' + fullResponse);
   }
 }
