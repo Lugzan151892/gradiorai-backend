@@ -9,5 +9,6 @@ import { PrismaModule } from '../prisma/prisma.module';
   imports: [AuthModule, QuestionsModule, PrismaModule],
   providers: [GptService],
   controllers: [GptController],
+  exports: [GptService],
 })
 export class GptModule {}

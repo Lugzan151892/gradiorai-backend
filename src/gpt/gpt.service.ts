@@ -19,6 +19,7 @@ import { QuestionsService } from '../questions/questions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Observable, Subject } from 'rxjs';
 import { Stream } from 'openai/streaming';
+import { IGPTStreamMessageEvent } from '../utils/interfaces/gpt/interfaces';
 
 export interface IGptSettings {
   id?: number;
@@ -46,27 +47,9 @@ const GPTResponse = z.object({
   ),
 });
 
-const interviewGptResponse = z.object({
-  message: z.object({
-    text: z.string(),
-  }),
-  finished: z.boolean(),
-  approved: z.boolean(),
-  result: z.string(),
-  recomendations: z.string(),
-});
-
-interface MessageEvent {
-  name: 'chunk' | 'done' | 'error';
-  data: {
-    text: string;
-    type: 'chunk' | 'done' | 'error';
-  };
-}
-
 @Injectable()
 export class GptService {
-  private stream$ = new Subject<MessageEvent>();
+  private stream$ = new Subject<IGPTStreamMessageEvent>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -179,7 +162,7 @@ export class GptService {
     };
   }
 
-  getStream(): Observable<MessageEvent> {
+  getStream(): Observable<IGPTStreamMessageEvent> {
     return this.stream$.asObservable();
   }
 
