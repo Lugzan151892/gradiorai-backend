@@ -13,10 +13,7 @@ export class UserController {
 
   @Get('user')
   async getUserData(@Req() request: Request) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -37,22 +34,15 @@ export class UserController {
     },
     @Req() request: Request
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
-
-    const result = await this.userService.createNewReview(body, user?.user?.id, ip);
+    const user = await this.authService.getUserFromTokens(request);
+    const result = await this.userService.createNewReview(body, user?.user?.id, user.userIp);
 
     return result;
   }
 
   @Get('users')
   async getUsers(@Req() request: Request) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
     if (!user || !user?.user.admin) {
       throw new HttpException(
@@ -68,12 +58,9 @@ export class UserController {
 
   @Get('reviews')
   async getReviews(@Req() request: Request) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user?.user.admin) {
+    if (!user?.user.admin) {
       throw new HttpException(
         { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
         HttpStatus.BAD_REQUEST

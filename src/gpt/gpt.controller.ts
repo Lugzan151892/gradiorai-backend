@@ -5,18 +5,9 @@ import { Request, Response } from 'express';
 import Redis from 'ioredis';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { getIpFromRequest } from '../utils/request';
-import { Observable } from 'rxjs';
 
 const REDIS_TTL = 60 * 60 * 24 * 3;
 const generateKey = 'gpt-generate-limit';
-
-interface MessageEvent {
-  name: 'chunk' | 'done' | 'error';
-  data: {
-    text: string;
-    type: 'chunk' | 'done' | 'error';
-  };
-}
 
 @Controller('gpt')
 export class GptController {
@@ -32,24 +23,20 @@ export class GptController {
     @Res({ passthrough: true }) response: Response,
     @Body() body: { level: number; spec: number; techs?: number[] }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(request);
 
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
-
-    if (!user) {
-      const isLocal = ip === '::1' || !ip;
+    if (!user.user) {
+      const isLocal = user.userIp === '::1' || !user.userIp;
 
       if (!isLocal) {
-        const ipExists = await this.redis.get(`${generateKey}:${ip}`);
+        const ipExists = await this.redis.get(`${generateKey}:${user.userIp}`);
         if (ipExists) {
           throw new HttpException(
             { message: `Доступ к генерации уже использован ${ipExists}!`, info: { type: 'generate' } },
             HttpStatus.BAD_REQUEST
           );
         } else {
-          await this.redis.set(`${generateKey}:${ip}`, new Date().getTime(), 'EX', REDIS_TTL * 1000);
+          await this.redis.set(`${generateKey}:${user.userIp}`, new Date().getTime(), 'EX', REDIS_TTL * 1000);
         }
       }
 
@@ -70,17 +57,5 @@ export class GptController {
     const data = await this.gptService.generateQuestions(body, user?.user.id, user?.user.admin);
 
     return data;
-  }
-
-  @Post('interview/message')
-  send(@Body() body: { content: string }) {
-    this.gptService.handleMessage(body.content);
-    return { status: 'ok' };
-  }
-
-  @Get('interview/stream')
-  @Sse()
-  stream(): Observable<MessageEvent> {
-    return this.gptService.getStream();
   }
 }
