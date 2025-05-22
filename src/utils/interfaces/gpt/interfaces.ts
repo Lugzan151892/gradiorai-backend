@@ -1,7 +1,42 @@
-export interface IGPTStreamMessageEvent {
-  name: 'chunk' | 'done' | 'error';
+export interface IGPTStreamMessageChunk {
+  name: 'chunk';
   data: {
     text: string;
-    type: 'chunk' | 'done' | 'error';
+    type: 'chunk';
   };
+}
+
+export interface IGPTStreamMessageDone {
+  name: 'done';
+  data: {
+    type: 'done';
+  };
+}
+
+export interface IGPTStreamMessageData {
+  name: 'data';
+  data: {
+    type: 'data';
+    interview: IInterview;
+  };
+}
+
+export type IGPTStreamMessageEvent = IGPTStreamMessageChunk | IGPTStreamMessageDone | IGPTStreamMessageData;
+
+export interface IInterview {
+  id: string;
+  created_at: Date;
+  updated_at: Date;
+  user_prompt: string;
+  user_id: number;
+  recomendations: string;
+  finished: boolean;
+  messages: {
+    id: number;
+    created_at: Date;
+    updated_at: Date;
+    is_human: boolean;
+    text: string;
+    interview_id: string;
+  }[];
 }
