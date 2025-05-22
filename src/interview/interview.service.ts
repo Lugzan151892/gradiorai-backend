@@ -70,4 +70,48 @@ export class InterviewService {
 
     return updatedInterview;
   }
+
+  async finishInterview(interviewId: string, json: string) {
+    const result = JSON.parse(json) as { status: string; score: string; summary: string };
+
+    const updatedInterview = await this.prismaService.interview.update({
+      where: {
+        id: interviewId,
+      },
+      data: {
+        finished: true,
+        recomendations: result.summary,
+      },
+      select: {
+        id: true,
+        created_at: true,
+        updated_at: true,
+        user_prompt: true,
+        messages: true,
+        finished: true,
+        recomendations: true,
+        user_id: true,
+      },
+    });
+
+    return updatedInterview;
+  }
+
+  async getAllUserInterviews(userId: number) {
+    const result = await this.prismaService.interview.findMany({
+      where: {
+        user_id: userId,
+      },
+      select: {
+        id: true,
+        created_at: true,
+        updated_at: true,
+        user_prompt: true,
+        finished: true,
+        user_id: true,
+      },
+    });
+
+    return result;
+  }
 }

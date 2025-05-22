@@ -42,6 +42,19 @@ export class InterviewController {
     return result;
   }
 
+  @Get('user-interviews')
+  async getUserInterviews(@Req() request: Request) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user.admin) {
+      throw new HttpException({ message: 'Пока только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const interviewList = await this.interviewService.getAllUserInterviews(user.user.id);
+
+    return interviewList;
+  }
+
   @Post('message')
   async addUserMessage(@Req() request: Request, @Body() body: { content: string; interviewId: string }) {
     const user = await this.authService.getUserFromTokens(request);

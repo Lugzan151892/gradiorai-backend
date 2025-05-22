@@ -10,13 +10,14 @@ export interface IGPTStreamMessageDone {
   name: 'done';
   data: {
     type: 'done';
+    result: string;
   };
 }
 
 export interface IGPTStreamMessageData {
   name: 'data';
   data: {
-    type: 'data';
+    type: 'data' | 'result';
     interview: IInterview;
   };
 }

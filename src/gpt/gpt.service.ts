@@ -194,7 +194,7 @@ export class GptService {
             (messages.length
               ? `Вот ваша история сообщений по порядку, продолжай общение либо завершай интервью, если считаешь, что оно окончено: [Начало истории сообщений] ${messages.join(', ')} [Конец истории сообщений]`
               : '') +
-            ` Когда ты решишь, что собеседование завершено, выдай итоговую оценку. ⚠️ Важно: итоговая оценка должна быть выведена одним сообщением и начинаться с серкетного символа [R]. Нигде больше не использую этот символ, кроме итогового сообщения. Символ [R] верни в первом же чанке, не разделяй его. Итоговое сообщение дай в таком формате:
+            ` Когда ты решишь, что собеседование завершено или если пользователь написал "Закончить собеседование" или "Покажи результат", выдай итоговую оценку. ⚠️ Важно: итоговая оценка должна быть выведена одним сообщением и начинаться с секретного символа [R]. Нигде больше не использую этот символ, кроме итогового сообщения. Символ [R] верни в первом же чанке, не разделяй его. Итоговое сообщение дай в таком формате:
             [R]{"status":"done", "score":"8/10", "summary":"Описание того как прошло интервью и какие навыки необходимо подтянуть пользователю."}
             Не добавляй пояснений до или после.`,
         },
@@ -211,44 +211,62 @@ export class GptService {
     });
 
     let fullResponse = '';
+    let buffer = '';
+    let isResult = false;
 
     for await (const chunk of completion) {
       const delta = chunk.choices?.[0]?.delta;
       const contentPart = delta?.content;
 
       if (contentPart) {
-        fullResponse += contentPart;
+        if (buffer) {
+          buffer += contentPart;
+          if (buffer.startsWith('[R]')) {
+            isResult = true;
+          } else {
+            fullResponse += buffer;
 
-        this.stream$.next({
-          name: 'chunk',
-          data: {
-            text: contentPart,
-            type: 'chunk',
-          },
-        });
+            this.stream$.next({
+              name: 'chunk',
+              data: {
+                text: buffer,
+                type: 'chunk',
+              },
+            });
+
+            buffer = '';
+          }
+        } else {
+          buffer += contentPart;
+        }
       }
     }
 
-    this.stream$.next({
-      name: 'done',
-      data: {
-        type: 'done',
-      },
-    });
+    if (!isResult) {
+      const savedInterview = await this.interviewService.addMessage({
+        interviewId: interview.id,
+        message: fullResponse,
+        is_human: false,
+      });
 
-    const savedInterview = await this.interviewService.addMessage({
-      interviewId: interview.id,
-      message: fullResponse,
-      is_human: false,
-    });
+      this.stream$.next({
+        name: 'data',
+        data: {
+          type: 'data',
+          interview: savedInterview,
+        },
+      });
+    } else {
+      const finishedInterview = await this.interviewService.finishInterview(interview.id, buffer.replace('[R]', ''));
 
-    this.stream$.next({
-      name: 'data',
-      data: {
-        type: 'data',
-        interview: savedInterview,
-      },
-    });
+      this.stream$.next({
+        name: 'data',
+        data: {
+          type: 'result',
+          interview: finishedInterview,
+        },
+      });
+    }
 
     console.log('Save to BD: ' + fullResponse);
   }
