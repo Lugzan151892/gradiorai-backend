@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { z } from 'zod';
@@ -19,7 +19,8 @@ import { QuestionsService } from '../questions/questions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Observable, Subject } from 'rxjs';
 import { Stream } from 'openai/streaming';
-import { IGPTStreamMessageEvent } from '../utils/interfaces/gpt/interfaces';
+import { IGPTStreamMessageEvent, IInterview } from '../utils/interfaces/gpt/interfaces';
+import { InterviewService } from '../interview/interview.service';
 
 export interface IGptSettings {
   id?: number;
@@ -54,7 +55,9 @@ export class GptService {
   constructor(
     private readonly configService: ConfigService,
     private readonly questionService: QuestionsService,
-    private readonly prismaService: PrismaService
+    private readonly prismaService: PrismaService,
+    @Inject(forwardRef(() => InterviewService))
+    private readonly interviewService: InterviewService
   ) {}
 
   getDefaultSettings(): IGptSettings {
@@ -166,21 +169,41 @@ export class GptService {
     return this.stream$.asObservable();
   }
 
-  async handleMessage(content: string) {
+  async handleMessage(interview: IInterview) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
     const openai = new OpenAI({ apiKey: apiKey });
+
+    const messages = interview.messages
+      .map((message, iMessage) => {
+        if (message.is_human) {
+          return `Сообщение №${iMessage}. Пользователь: ${message.text}.`;
+        }
+
+        return `Сообщение №${iMessage}. Твое сообщение: ${message.text}.`;
+      })
+      .slice(0, -1);
+
     const completion: Stream<OpenAI.Chat.Completions.ChatCompletionChunk> = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1',
       store: true,
       messages: [
         {
           role: 'system',
           content:
-            'Ты часть сервиса по подготовке к собеседованиям. Твоя задача провести собеседование с потенциальным кандидатом, задавать ему вопросы, которые были бы заданы на реальном собеседовании и в конце дать оценку его знаниям',
+            'Ты часть сервиса по подготовке к собеседованиям. Твоя задача провести собеседование с потенциальным кандидатом, задавать ему вопросы, которые были бы заданы на реальном собеседовании и в конце дать оценку его знаниям. Если нет истории сообщений и по сообщению пользователя нельзя понять, в каком направлении он хочет пройти собеседование, спрашивай его уточняющие вопросы, пока не поймешь, какой тип собеседования ему нужен. Не задавай несколько вопросов в одном сообщении, максимум 1-2 вопроса, подходящих по смыслу. Не спрашивай сам, что еще хотел бы обсудить пользователь. Веди собеседование самостоятельно и сам направляй пользователя в нужном направлении. Если пользователь не ответил на твой вопрос или ответил неправильно, сначала задай наводящий вопрос и если пользователь не может ответить, тогда ответь сам, посоветуй что почитать, чтобы улучшить его навыки в конце ответа спроси все ли он понял и можно ли продолжать собеседование. Если есть история сообщений, веди себя так, как будто вы уже общались, не здоровайся второй раз, просто продолжай диалог. ' +
+            (messages.length
+              ? `Вот ваша история сообщений по порядку, продолжай общение либо завершай интервью, если считаешь, что оно окончено: [Начало истории сообщений] ${messages.join(', ')} [Конец истории сообщений]`
+              : '') +
+            ` Когда ты решишь, что собеседование завершено или если пользователь написал "Закончить собеседование" или "Покажи результат", выдай итоговую оценку. ⚠️ Важно: итоговая оценка должна быть выведена одним сообщением и начинаться с секретного символа [R]. Нигде больше не использую этот символ, кроме итогового сообщения. Символ [R] верни в первом же чанке, не разделяй его. Итоговое сообщение дай в таком формате:
+            [R]{"status":"done", "score":"8/10", "summary":"Описание того как прошло интервью и какие навыки необходимо подтянуть пользователю."}
+            Не добавляй пояснений до или после.`,
         },
         {
           role: 'user',
-          content: 'Меня зовут Денис, я начинающий frontend разработчик ' + content,
+          content:
+            interview.messages.length && interview.messages[interview.messages.length - 1].is_human
+              ? interview.messages[interview.messages.length - 1].text
+              : interview.user_prompt,
         },
       ],
       temperature: 1,
@@ -188,30 +211,62 @@ export class GptService {
     });
 
     let fullResponse = '';
+    let buffer = '';
+    let isResult = false;
 
     for await (const chunk of completion) {
       const delta = chunk.choices?.[0]?.delta;
       const contentPart = delta?.content;
 
       if (contentPart) {
-        fullResponse += contentPart;
+        if (buffer) {
+          buffer += contentPart;
+          if (buffer.startsWith('[R]')) {
+            isResult = true;
+          } else {
+            fullResponse += buffer;
 
-        this.stream$.next({
-          name: 'chunk',
-          data: {
-            text: contentPart,
-            type: 'chunk',
-          },
-        });
+            this.stream$.next({
+              name: 'chunk',
+              data: {
+                text: buffer,
+                type: 'chunk',
+              },
+            });
+
+            buffer = '';
+          }
+        } else {
+          buffer += contentPart;
+        }
       }
     }
-    this.stream$.next({
-      name: 'done',
-      data: {
-        text: '',
-        type: 'done',
-      },
-    });
+
+    if (!isResult) {
+      const savedInterview = await this.interviewService.addMessage({
+        interviewId: interview.id,
+        message: fullResponse,
+        is_human: false,
+      });
+
+      this.stream$.next({
+        name: 'data',
+        data: {
+          type: 'data',
+          interview: savedInterview,
+        },
+      });
+    } else {
+      const finishedInterview = await this.interviewService.finishInterview(interview.id, buffer.replace('[R]', ''));
+
+      this.stream$.next({
+        name: 'data',
+        data: {
+          type: 'result',
+          interview: finishedInterview,
+        },
+      });
+    }
 
     console.log('Save to BD: ' + fullResponse);
   }
