@@ -100,6 +100,7 @@ model User {
   saved_question   Question[]
   refresh_token    RefreshToken?
   test_reviews     Reviews[]
+  interviews       Interview[]
   last_login       DateTime?
   last_ip          String?
   ip_log           UserIpLog[]
@@ -133,4 +134,26 @@ model GptSettings {
   admin_amount   Int
   user_amount    Int
   temperature    Float
+}
+
+model InterviewMessages {
+  id               Int                   @id @default(autoincrement())
+  is_human         Boolean
+  interview        Interview             @relation(fields: [interview_id], references: [id], onDelete: Cascade)
+  interview_id     String
+  text             String                @db.LongText
+  created_at       DateTime              @default(now())
+  updated_at       DateTime              @updatedAt
+}
+
+model Interview {
+  id               String                 @id @default(uuid())
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @updatedAt
+  user_prompt      String                 @db.LongText
+  messages         InterviewMessages[]
+  user             User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id          Int
+  recomendations   String?                @db.LongText
+  finished         Boolean                @default(false)
 }
