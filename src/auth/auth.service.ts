@@ -6,6 +6,8 @@ import Redis from 'ioredis';
 import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 import { InjectRedis } from '@nestjs-modules/ioredis';
+import { Request } from 'express';
+import { getIpFromRequest } from 'src/utils/request';
 
 const REDIS_TTL = 60 * 60 * 24 * 3;
 
@@ -221,23 +223,26 @@ export class AuthService {
     }
   }
 
-  async getUserFromTokens(
-    accessToken?: string,
-    refreshToken?: string,
-    userIp?: string
-  ): Promise<null | {
-    user: {
+  async getUserFromTokens(request: Request): Promise<{
+    user?: {
       id: number;
       email: string;
       created_at: string;
       updated_at: true;
       admin: true;
     };
-    accessToken: string;
+    accessToken?: string;
     refreshToken?: string;
+    userIp: string;
   }> {
+    const accessToken = request.headers['authorization']?.split(' ')[1];
+    const refreshToken = request.cookies['refresh_token'];
+    const userIp = getIpFromRequest(request);
+
     if (!accessToken && !refreshToken) {
-      return null;
+      return {
+        userIp,
+      };
     }
 
     try {
@@ -275,6 +280,7 @@ export class AuthService {
         return {
           user: user,
           accessToken: accessToken,
+          userIp,
         };
       }
 
@@ -304,7 +310,9 @@ export class AuthService {
           : null;
 
         if (!user) {
-          return null;
+          return {
+            userIp,
+          };
         }
 
         const savedRefresh = await this.prisma.refreshToken.findUnique({
@@ -325,6 +333,7 @@ export class AuthService {
           user: user,
           accessToken: accessToken,
           refreshToken: savedRefresh.token,
+          userIp,
         };
       }
     } catch (error) {
@@ -332,8 +341,8 @@ export class AuthService {
     }
   }
 
-  async logout(accessToken?: string, refreshToken?: string) {
-    const user = await this.getUserFromTokens(accessToken, refreshToken);
+  async logout(request: Request) {
+    const user = await this.getUserFromTokens(request);
     if (user) {
       const tokenExists = await this.prisma.refreshToken.findUnique({
         where: { user_id: user.user.id },

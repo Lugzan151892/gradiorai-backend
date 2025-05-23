@@ -14,13 +14,13 @@ export class SystemController {
   ) {}
   @Get('logs')
   async getLogs(@Res() res: Response, @Req() request: Request) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const logFilePath = path.join(__dirname, '..', '..', 'logs', 'combined.log');
@@ -42,13 +42,13 @@ export class SystemController {
 
   @Get('gpt-settings')
   async getGptSettings(@Req() request: Request) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const settings = await this.gptService.getSettings();
@@ -64,13 +64,13 @@ export class SystemController {
       settings: IGptSettings;
     }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not Admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const result = await this.gptService.updateGptSettings(body.settings);

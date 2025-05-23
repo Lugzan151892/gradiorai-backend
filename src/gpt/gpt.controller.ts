@@ -1,4 +1,4 @@
-import { Body, Controller, HttpException, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res, Sse } from '@nestjs/common';
 import { GptService } from './gpt.service';
 import { AuthService } from '../auth/auth.service';
 import { Request, Response } from 'express';
@@ -23,24 +23,20 @@ export class GptController {
     @Res({ passthrough: true }) response: Response,
     @Body() body: { level: number; spec: number; techs?: number[] }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
+    const user = await this.authService.getUserFromTokens(request);
 
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
-
-    if (!user) {
-      const isLocal = ip === '::1' || !ip;
+    if (!user.user) {
+      const isLocal = user.userIp === '::1' || !user.userIp;
 
       if (!isLocal) {
-        const ipExists = await this.redis.get(`${generateKey}:${ip}`);
+        const ipExists = await this.redis.get(`${generateKey}:${user.userIp}`);
         if (ipExists) {
           throw new HttpException(
             { message: `Доступ к генерации уже использован ${ipExists}!`, info: { type: 'generate' } },
             HttpStatus.BAD_REQUEST
           );
         } else {
-          await this.redis.set(`${generateKey}:${ip}`, new Date().getTime(), 'EX', REDIS_TTL * 1000);
+          await this.redis.set(`${generateKey}:${user.userIp}`, new Date().getTime(), 'EX', REDIS_TTL * 1000);
         }
       }
 
