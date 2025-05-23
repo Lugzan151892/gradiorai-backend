@@ -14,7 +14,6 @@ import { AuthService } from '../auth/auth.service';
 import { Request } from 'express';
 import { IQuestionResponse } from '../utils/interfaces/questions';
 import { QuestionsService } from './questions.service';
-import { getIpFromRequest } from '../utils/request';
 
 @Controller('questions')
 export class QuestionsController {
@@ -34,12 +33,9 @@ export class QuestionsController {
       techs: number[];
     }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user) {
+    if (!user.user) {
       throw new UnauthorizedException('Unauthorized');
     }
 
@@ -60,13 +56,13 @@ export class QuestionsController {
       techs: number[];
     }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not and admin!');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const savedQuestion = await this.questionsService.editQuestions(body);
@@ -95,13 +91,13 @@ export class QuestionsController {
       specs?: Array<number>;
     }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an Admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const result = await this.questionsService.saveNewTech(body);
@@ -120,13 +116,13 @@ export class QuestionsController {
       specs?: Array<number>;
     }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an Admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const result = await this.questionsService.editTech(body);
@@ -142,7 +138,7 @@ export class QuestionsController {
   }
 
   @Get('get-specs')
-  async getAllSpecs(@Query() query: { spec?: string }) {
+  async getAllSpecs() {
     const result = await this.questionsService.getAllSpecs();
 
     return result;
@@ -157,13 +153,13 @@ export class QuestionsController {
       techs?: Array<number>;
     }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an Admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const result = await this.questionsService.saveNewSpec(body);
@@ -173,15 +169,13 @@ export class QuestionsController {
 
   @Delete('delete-tech')
   async deleteTech(@Req() request: Request, @Body() body: { id: number }) {
-    console.log(body);
+    const user = await this.authService.getUserFromTokens(request);
 
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
-
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an Admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const result = await this.questionsService.deleteTechById(body.id);
@@ -199,13 +193,13 @@ export class QuestionsController {
       techs?: Array<number>;
     }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an Admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const result = await this.questionsService.editSpec(body);
@@ -215,13 +209,13 @@ export class QuestionsController {
 
   @Delete('delete-spec')
   async deleteSpec(@Req() request: Request, @Body() body: { id: number }) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an Admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const result = await this.questionsService.deleteSpecById(body.id);
@@ -237,12 +231,9 @@ export class QuestionsController {
       question_id: number;
     }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user) {
+    if (!user.user) {
       throw new UnauthorizedException('Unauthorized');
     }
 
@@ -253,14 +244,12 @@ export class QuestionsController {
 
   @Get('questions-list')
   async getAllQuestions(@Req() request: Request, @Query() query: { only_mine: string; only_without_specs: string }) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user) {
+    if (!user.user) {
       throw new UnauthorizedException('Unauthorized');
     }
+
     const result = await this.questionsService.getQuestions(
       query.only_without_specs === 'true',
       query.only_mine === 'true' ? user.user.id : undefined
@@ -272,13 +261,13 @@ export class QuestionsController {
   /** Удаление вопроса */
   @Delete('delete')
   async deleteQuestion(@Req() request: Request, @Body() body: { id: number }) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an Admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const result = await this.questionsService.deleteQuestionById(body.id);
