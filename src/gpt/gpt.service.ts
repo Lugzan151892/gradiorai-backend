@@ -3,17 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
-import {
-  defaultAdminAmount,
-  defaultAdminModel,
-  defaultSystemMessage,
-  defaultTemperature,
-  defaultUserAmount,
-  defaultUserMessage,
-  defaultUserModel,
-  getSkillLevel,
-  replacePromptKeywords,
-} from './utils';
+import { defaultTestSettingsData, getSkillLevel, replacePromptKeywords, defaultInterviewSettingsData } from './utils';
 import { ESKILL_LEVEL } from '../utils/interfaces/enums';
 import { QuestionsService } from '../questions/questions.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -24,6 +14,7 @@ import { InterviewService } from '../interview/interview.service';
 
 export interface IGptSettings {
   id?: number;
+  type?: 'TEST' | 'INTERVIEW';
   user_model: 'gpt-4o-mini' | 'gpt-4o';
   admin_model: 'gpt-4o-mini' | 'gpt-4o';
   system_message: string;
@@ -60,40 +51,37 @@ export class GptService {
     private readonly interviewService: InterviewService
   ) {}
 
-  getDefaultSettings(): IGptSettings {
-    return {
-      user_model: defaultUserModel,
-      admin_model: defaultAdminModel,
-      system_message: defaultSystemMessage,
-      user_message: defaultUserMessage,
-      admin_amount: defaultAdminAmount,
-      user_amount: defaultUserAmount,
-      temperature: defaultTemperature,
-    };
-  }
-
-  async getSettings() {
-    const settings = (await this.prismaService.gptSettings.findFirst()) as IGptSettings;
+  async getSettings(type: 'TEST' | 'INTERVIEW') {
+    const settings = (await this.prismaService.gptSettings.findFirst({
+      where: {
+        type,
+      },
+    })) as IGptSettings;
 
     if (settings) {
       return settings;
     }
 
-    return this.getDefaultSettings();
+    return type === 'TEST' ? defaultTestSettingsData : defaultInterviewSettingsData;
   }
 
-  async updateGptSettings(settings: IGptSettings) {
+  async updateGptSettings(settings: IGptSettings, type: 'TEST' | 'INTERVIEW') {
     const newSettings = settings;
+
     if (!settings.id) {
       delete settings.id;
     }
 
     const createdSettings = await this.prismaService.gptSettings.upsert({
       where: {
-        id: newSettings.id ?? 1,
+        ...(newSettings.id ? { id: newSettings.id } : {}),
+        type,
       },
       update: newSettings,
-      create: newSettings,
+      create: {
+        ...newSettings,
+        type,
+      },
     });
 
     return createdSettings;
@@ -101,13 +89,7 @@ export class GptService {
 
   async generateQuestions(params: { level: ESKILL_LEVEL; techs?: number[] }, userId?: number, isAdmin?: boolean) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
-    let settings = this.getDefaultSettings();
-
-    const savedSettings: IGptSettings = await this.getSettings();
-
-    if (savedSettings) {
-      settings = savedSettings;
-    }
+    const settings: IGptSettings = await this.getSettings('TEST');
 
     let questionsAmount = isAdmin ? settings.admin_amount : settings.user_amount;
     let questions = [];
@@ -169,9 +151,10 @@ export class GptService {
     return this.stream$.asObservable();
   }
 
-  async handleMessage(interview: IInterview) {
+  async handleMessage(interview: IInterview, isAdmin?: boolean) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
     const openai = new OpenAI({ apiKey: apiKey });
+    const settings: IGptSettings = await this.getSettings('INTERVIEW');
 
     const messages = interview.messages
       .map((message, iMessage) => {
@@ -184,15 +167,15 @@ export class GptService {
       .slice(0, -1);
 
     const completion: Stream<OpenAI.Chat.Completions.ChatCompletionChunk> = await openai.chat.completions.create({
-      model: 'gpt-4.1',
+      model: isAdmin ? settings.admin_model : settings.user_model,
       store: true,
       messages: [
         {
           role: 'system',
           content:
-            'Ты часть сервиса по подготовке к собеседованиям. Твоя задача провести собеседование с потенциальным кандидатом, задавать ему вопросы, которые были бы заданы на реальном собеседовании и в конце дать оценку его знаниям. Если нет истории сообщений и по сообщению пользователя нельзя понять, в каком направлении он хочет пройти собеседование, спрашивай его уточняющие вопросы, пока не поймешь, какой тип собеседования ему нужен. Не задавай несколько вопросов в одном сообщении, максимум 1-2 вопроса, подходящих по смыслу. Не спрашивай сам, что еще хотел бы обсудить пользователь. Веди собеседование самостоятельно и сам направляй пользователя в нужном направлении. Если пользователь не ответил на твой вопрос или ответил неправильно, сначала задай наводящий вопрос и если пользователь не может ответить, тогда ответь сам, посоветуй что почитать, чтобы улучшить его навыки в конце ответа спроси все ли он понял и можно ли продолжать собеседование. Если есть история сообщений, веди себя так, как будто вы уже общались, не здоровайся второй раз, просто продолжай диалог. ' +
+            settings.system_message +
             (messages.length
-              ? `Вот ваша история сообщений по порядку, продолжай общение либо завершай интервью, если считаешь, что оно окончено: [Начало истории сообщений] ${messages.join(', ')} [Конец истории сообщений]`
+              ? ` Вот ваша история сообщений по порядку, продолжай общение либо завершай интервью, если считаешь, что оно окончено: [Начало истории сообщений] ${messages.join(', ')} [Конец истории сообщений]`
               : '') +
             ` Когда ты решишь, что собеседование завершено или если пользователь написал "Закончить собеседование" или "Покажи результат", выдай итоговую оценку. ⚠️ Важно: итоговая оценка должна быть выведена одним сообщением и начинаться с секретного символа [R]. Нигде больше не использую этот символ, кроме итогового сообщения. Символ [R] верни в первом же чанке, не разделяй его. Итоговое сообщение дай в таком формате:
             [R]{"status":"done", "score":"8/10", "summary":"Описание того как прошло интервью и какие навыки необходимо подтянуть пользователю."}
@@ -206,7 +189,7 @@ export class GptService {
               : interview.user_prompt,
         },
       ],
-      temperature: 1,
+      temperature: settings.temperature,
       stream: true,
     });
 
