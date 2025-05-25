@@ -106,7 +106,7 @@ export class InterviewController {
       );
     }
 
-    this.gptService.handleMessage(interview);
+    this.gptService.handleMessage(interview, user.user?.admin);
 
     return { status: 'ok' };
   }
