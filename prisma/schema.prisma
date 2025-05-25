@@ -127,12 +127,13 @@ model UserQuestionProgress {
 
 model GptSettings {
   id             Int    @id @default(autoincrement())
+  type           String @unique
   user_model     String
   admin_model    String
   system_message String @db.LongText
   user_message   String @db.LongText
-  admin_amount   Int
-  user_amount    Int
+  admin_amount   Int?
+  user_amount    Int?
   temperature    Float
 }
 

@@ -1,10 +1,9 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, Res } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Response, Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { GptService, IGptSettings } from '../gpt/gpt.service';
-import { getIpFromRequest } from '../utils/request';
 
 @Controller('system')
 export class SystemController {
@@ -41,7 +40,7 @@ export class SystemController {
   }
 
   @Get('gpt-settings')
-  async getGptSettings(@Req() request: Request) {
+  async getGptSettings(@Req() request: Request, @Query() query: { type?: 'TEST' | 'INTERVIEW' }) {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user.user?.admin) {
@@ -51,7 +50,14 @@ export class SystemController {
       );
     }
 
-    const settings = await this.gptService.getSettings();
+    if (!query.type || !['TEST', 'INTERVIEW'].includes(query.type)) {
+      throw new HttpException(
+        { message: 'Некорректно указан тип настроек TEST | INTERVIEW', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const settings = await this.gptService.getSettings(query.type);
 
     return settings;
   }
@@ -62,6 +68,7 @@ export class SystemController {
     @Body()
     body: {
       settings: IGptSettings;
+      type: 'TEST' | 'INTERVIEW';
     }
   ) {
     const user = await this.authService.getUserFromTokens(request);
@@ -73,7 +80,14 @@ export class SystemController {
       );
     }
 
-    const result = await this.gptService.updateGptSettings(body.settings);
+    if (!body.type || !['TEST', 'INTERVIEW'].includes(body.type)) {
+      throw new HttpException(
+        { message: 'Не указан тип настроек TEST || INTERVIEW', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const result = await this.gptService.updateGptSettings(body.settings, body.type);
 
     return result;
   }
