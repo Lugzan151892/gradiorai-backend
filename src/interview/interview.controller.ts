@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
@@ -188,6 +189,22 @@ export class InterviewController {
     );
 
     return updatedInterview;
+  }
+
+  @Delete('delete')
+  async deleteTech(@Req() request: Request, @Body() body: { id: string }) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const result = await this.interviewService.deleteInterview(body.id);
+
+    return result;
   }
 
   @Get('stream')

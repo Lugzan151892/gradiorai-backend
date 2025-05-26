@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IFile } from '../utils/interfaces/files';
 
@@ -179,5 +179,19 @@ export class InterviewService {
     });
 
     return result;
+  }
+
+  async deleteInterview(interviewId: string) {
+    if (!interviewId) {
+      throw new HttpException('ID не указан', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.prismaService.interview.delete({
+      where: {
+        id: interviewId,
+      },
+    });
+
+    return { message: 'Интервью успешно удалено.' };
   }
 }
