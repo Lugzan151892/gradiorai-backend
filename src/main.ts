@@ -5,6 +5,8 @@ import { Logger } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { GlobalExceptionFilter } from './utils/errors/exception.filter';
 import { winstonConfig } from './config/winston/winston.config';
+import * as path from 'path';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -29,6 +31,7 @@ async function bootstrap() {
   });
   app.use(cookieParser());
   app.useGlobalFilters(new GlobalExceptionFilter());
+  app.use('/uploads/public', express.static(path.join(__dirname, '..', 'uploads/public')));
   await app.listen(port);
   Logger.log('info', `Application is running on: http://localhost:${port}`);
 }

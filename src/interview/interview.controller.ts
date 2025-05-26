@@ -1,17 +1,33 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, Sse } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Post,
+  Query,
+  Req,
+  Sse,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { GptService } from '../gpt/gpt.service';
 import { IGPTStreamMessageEvent } from '../utils/interfaces/gpt/interfaces';
 import { AuthService } from '../auth/auth.service';
 import { Request } from 'express';
 import { InterviewService } from '../interview/interview.service';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { FileService } from '../services/files/file.service';
+import { createTempMulterStorage } from '../services/files/custom-storage.service';
 
 @Controller('interview')
 export class InterviewController {
   constructor(
     private readonly gptService: GptService,
     private readonly authService: AuthService,
-    private readonly interviewService: InterviewService
+    private readonly interviewService: InterviewService,
+    private readonly fileService: FileService
   ) {}
 
   @Get('interview')
@@ -112,8 +128,14 @@ export class InterviewController {
   }
 
   @Post('create')
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      storage: createTempMulterStorage(),
+    })
+  )
   async createInterview(
     @Req() request: Request,
+    @UploadedFiles() files: Express.Multer.File[],
     @Body()
     body: {
       user_prompt: string;
@@ -125,9 +147,47 @@ export class InterviewController {
       throw new HttpException({ message: 'Пока только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
     }
 
-    const newInterview = await this.interviewService.createInterview({ user_prompt: body.user_prompt, userId: user.user.id });
+    if (!files) {
+      throw new HttpException({ message: 'Файлы не добавлены', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
+    }
 
-    return newInterview;
+    const fileMap = Object.fromEntries(files.map((file) => [file.fieldname, file]));
+
+    const userCvFile = fileMap['cv'];
+    const userVacFile = fileMap['vac'];
+
+    if (!userCvFile) {
+      throw new HttpException({ message: 'Файл резюме обязателен!', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const userCvFileContent = await this.fileService.extractText(userCvFile);
+    const userVacFileContent = userVacFile ? await this.fileService.extractText(userVacFile) : undefined;
+    const updatedUserPrompt = this.interviewService.updateUserPromptByFiles(
+      body.user_prompt,
+      userCvFileContent,
+      userVacFileContent
+    );
+
+    const newInterview = await this.interviewService.createInterview({ user_prompt: updatedUserPrompt, userId: user.user.id });
+
+    const savedFiles = await this.fileService.moveFilesToStorage(
+      [userCvFile, ...(userVacFile ? [userVacFile] : [])],
+      user.user.id,
+      'interview',
+      newInterview.id,
+      false
+    );
+
+    const updatedInterview = await this.interviewService.updateInterviewFiles(
+      savedFiles.map((file, index) => ({
+        ...file,
+        inside_type: !index ? 'cv' : 'vac',
+      })),
+      newInterview.id,
+      user.user.id
+    );
+
+    return updatedInterview;
   }
 
   @Get('stream')

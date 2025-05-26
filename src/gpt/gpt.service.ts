@@ -250,7 +250,5 @@ export class GptService {
         },
       });
     }
-
-    console.log('Save to BD: ' + fullResponse);
   }
 }
