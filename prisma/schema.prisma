@@ -104,6 +104,7 @@ model User {
   last_login       DateTime?
   last_ip          String?
   ip_log           UserIpLog[]
+  interview_files  InterviewFiles[]
 }
 
 model UserIpLog {
@@ -157,4 +158,22 @@ model Interview {
   user_id          Int
   recomendations   String?                @db.LongText
   finished         Boolean                @default(false)
+  files            InterviewFiles[]
+}
+
+model InterviewFiles {
+  id                    String   @id @default(uuid())
+  filename              String
+  mimetype              String
+  size                  Int
+  path                  String
+  public                Boolean
+  user_id               Int
+  user                  User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  interview_id          String
+  interview             Interview @relation(fields: [interview_id], references: [id], onDelete: Cascade)
+  entity_type           String
+  entity_id             String
+  inside_type           String
+  createdAt             DateTime @default(now())
 }
