@@ -41,3 +41,9 @@ export interface IInterview {
     interview_id: string;
   }[];
 }
+
+export enum EGPT_SETTINGS_TYPE {
+  TEST = 'TEST',
+  INTERVIEW = 'INTERVIEW',
+  RESUME_CHECK = 'RESUME_CHECK',
+}
