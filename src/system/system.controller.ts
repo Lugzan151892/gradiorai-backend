@@ -4,6 +4,7 @@ import * as path from 'path';
 import { Response, Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { GptService, IGptSettings } from '../gpt/gpt.service';
+import { EGPT_SETTINGS_TYPE } from 'src/utils/interfaces/gpt/interfaces';
 
 @Controller('system')
 export class SystemController {
@@ -40,7 +41,7 @@ export class SystemController {
   }
 
   @Get('gpt-settings')
-  async getGptSettings(@Req() request: Request, @Query() query: { type?: 'TEST' | 'INTERVIEW' }) {
+  async getGptSettings(@Req() request: Request, @Query() query: { type?: EGPT_SETTINGS_TYPE }) {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user.user?.admin) {
@@ -50,9 +51,9 @@ export class SystemController {
       );
     }
 
-    if (!query.type || !['TEST', 'INTERVIEW'].includes(query.type)) {
+    if (!query.type || !EGPT_SETTINGS_TYPE[query.type]) {
       throw new HttpException(
-        { message: 'Некорректно указан тип настроек TEST | INTERVIEW', info: { type: 'admin' } },
+        { message: 'Некорректно указан тип настроек EGPT_SETTINGS_TYPE', info: { type: 'admin' } },
         HttpStatus.BAD_REQUEST
       );
     }
@@ -68,7 +69,7 @@ export class SystemController {
     @Body()
     body: {
       settings: IGptSettings;
-      type: 'TEST' | 'INTERVIEW';
+      type: EGPT_SETTINGS_TYPE;
     }
   ) {
     const user = await this.authService.getUserFromTokens(request);
@@ -80,9 +81,9 @@ export class SystemController {
       );
     }
 
-    if (!body.type || !['TEST', 'INTERVIEW'].includes(body.type)) {
+    if (!body.type || !EGPT_SETTINGS_TYPE[body.type]) {
       throw new HttpException(
-        { message: 'Не указан тип настроек TEST || INTERVIEW', info: { type: 'admin' } },
+        { message: 'Не указан тип настроек EGPT_SETTINGS_TYPE', info: { type: 'admin' } },
         HttpStatus.BAD_REQUEST
       );
     }
