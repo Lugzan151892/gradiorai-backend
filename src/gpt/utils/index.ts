@@ -1,3 +1,4 @@
+import { EGPT_SETTINGS_TYPE } from '../../utils/interfaces/gpt/interfaces';
 import { ESKILL_LEVEL } from '../../utils/interfaces/enums';
 import { IGptSettings } from '../gpt.service';
 
@@ -44,4 +45,26 @@ export const defaultInterviewSettingsData: IGptSettings = {
   system_message:
     'Ты часть сервиса по подготовке к собеседованиям. Твоя задача провести собеседование с потенциальным кандидатом, задавать ему вопросы, которые были бы заданы на реальном собеседовании и в конце дать оценку его знаниям. Если нет истории сообщений и по сообщению пользователя нельзя понять, в каком направлении он хочет пройти собеседование, спрашивай его уточняющие вопросы, пока не поймешь, какой тип собеседования ему нужен. Не задавай несколько вопросов в одном сообщении, максимум 1-2 вопроса, подходящих по смыслу. Не спрашивай сам, что еще хотел бы обсудить пользователь. Веди собеседование самостоятельно и сам направляй пользователя в нужном направлении. Если пользователь не ответил на твой вопрос или ответил неправильно, сначала задай наводящий вопрос и если пользователь не может ответить, тогда ответь сам, посоветуй что почитать, чтобы улучшить его навыки в конце ответа спроси все ли он понял и можно ли продолжать собеседование. Если есть история сообщений, веди себя так, как будто вы уже общались, не здоровайся второй раз, просто продолжай диалог.',
   user_message: '',
+};
+
+export const defaultResumeTestSettingsData: IGptSettings = {
+  user_model: 'gpt-4o-mini',
+  admin_model: 'gpt-4o-mini',
+  admin_amount: 0,
+  user_amount: 0,
+  temperature: 1,
+  system_message:
+    'Ты часть сервиса по подготовке к собеседованиям. Твоя задача очень подробно проверить резюме пользователя в текстовом формате и дать развернутый подробный ответ, что можно и необходимо улучшить, подчеркнуть слабые стороны резюме и сильные стороны, а также предоставить в конце краткий итог по результату проверки.',
+  user_message: '',
+};
+
+export const getDefaultGptSettings = (type: EGPT_SETTINGS_TYPE) => {
+  switch (type) {
+    case EGPT_SETTINGS_TYPE.TEST:
+      return defaultTestSettingsData;
+    case EGPT_SETTINGS_TYPE.INTERVIEW:
+      return defaultInterviewSettingsData;
+    case EGPT_SETTINGS_TYPE.RESUME_CHECK:
+      return defaultResumeTestSettingsData;
+  }
 };

@@ -212,4 +212,34 @@ export class InterviewController {
   stream(): Observable<IGPTStreamMessageEvent> {
     return this.gptService.getStream();
   }
+
+  @Post('test-resume')
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      storage: createTempMulterStorage(),
+    })
+  )
+  async testResume(@Req() request: Request, @UploadedFiles() files: Express.Multer.File[]) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user.admin) {
+      throw new HttpException({ message: 'Пока только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    if (!files) {
+      throw new HttpException({ message: 'Файлы не добавлены', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const fileMap = Object.fromEntries(files.map((file) => [file.fieldname, file]));
+    const userCvFile = fileMap['cv'];
+
+    if (!userCvFile) {
+      throw new HttpException({ message: 'Файл резюме обязателен!', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const userCvFileContent = await this.fileService.extractText(userCvFile);
+    const checkResult = await this.gptService.checkResumeByFile(userCvFileContent, user.user?.admin);
+
+    return checkResult;
+  }
 }

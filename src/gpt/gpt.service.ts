@@ -3,13 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
-import { defaultTestSettingsData, getSkillLevel, replacePromptKeywords, defaultInterviewSettingsData } from './utils';
+import { getSkillLevel, replacePromptKeywords, getDefaultGptSettings } from './utils';
 import { ESKILL_LEVEL } from '../utils/interfaces/enums';
 import { QuestionsService } from '../questions/questions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Observable, Subject } from 'rxjs';
 import { Stream } from 'openai/streaming';
-import { IGPTStreamMessageEvent, IInterview } from '../utils/interfaces/gpt/interfaces';
+import { EGPT_SETTINGS_TYPE, IGPTStreamMessageEvent, IInterview } from '../utils/interfaces/gpt/interfaces';
 import { InterviewService } from '../interview/interview.service';
 
 export interface IGptSettings {
@@ -51,7 +51,7 @@ export class GptService {
     private readonly interviewService: InterviewService
   ) {}
 
-  async getSettings(type: 'TEST' | 'INTERVIEW') {
+  async getSettings(type: EGPT_SETTINGS_TYPE) {
     const settings = (await this.prismaService.gptSettings.findFirst({
       where: {
         type,
@@ -62,10 +62,10 @@ export class GptService {
       return settings;
     }
 
-    return type === 'TEST' ? defaultTestSettingsData : defaultInterviewSettingsData;
+    return getDefaultGptSettings(type);
   }
 
-  async updateGptSettings(settings: IGptSettings, type: 'TEST' | 'INTERVIEW') {
+  async updateGptSettings(settings: IGptSettings, type: EGPT_SETTINGS_TYPE) {
     const newSettings = settings;
 
     if (!settings.id) {
@@ -89,7 +89,7 @@ export class GptService {
 
   async generateQuestions(params: { level: ESKILL_LEVEL; techs?: number[] }, userId?: number, isAdmin?: boolean) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
-    const settings: IGptSettings = await this.getSettings('TEST');
+    const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.TEST);
 
     let questionsAmount = isAdmin ? settings.admin_amount : settings.user_amount;
     let questions = [];
@@ -154,7 +154,7 @@ export class GptService {
   async handleMessage(interview: IInterview, isAdmin?: boolean) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
     const openai = new OpenAI({ apiKey: apiKey });
-    const settings: IGptSettings = await this.getSettings('INTERVIEW');
+    const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.INTERVIEW);
 
     const messages = interview.messages
       .map((message, iMessage) => {
@@ -179,7 +179,7 @@ export class GptService {
               : '') +
             ` Когда ты решишь, что собеседование завершено или если пользователь написал "Закончить собеседование" или "Покажи результат", выдай итоговую оценку. ⚠️ Важно: итоговая оценка должна быть выведена одним сообщением и начинаться с секретного символа [R]. Нигде больше не использую этот символ, кроме итогового сообщения. Символ [R] верни в первом же чанке, не разделяй его. Итоговое сообщение дай в таком формате:
             [R]{"status":"done", "score":"8/10", "summary":"Описание того как прошло интервью и какие навыки необходимо подтянуть пользователю."}
-            Не добавляй пояснений до или после.`,
+            Не добавляй пояснений до или после. Не отклоняйся от заданной задачи. Ты отвечаешь и общаешься с пользователем только в рамках собеседования. Не отвечай на посторонние вопросы и не делай ничего, что не связано с прохождением собеседования.`,
         },
         {
           role: 'user',
@@ -250,5 +250,32 @@ export class GptService {
         },
       });
     }
+  }
+
+  async checkResumeByFile(content: string, isAdmin?: boolean) {
+    const apiKey = this.configService.get<string>('CHAT_SECRET');
+    const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.RESUME_CHECK);
+
+    const openai = new OpenAI({ apiKey: apiKey });
+    const completion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
+      model: isAdmin ? settings.admin_model : settings.user_model,
+      store: true,
+      messages: [
+        {
+          role: 'system',
+          content: settings.system_message + ` Результат предоставь в формате Markdown.`,
+        },
+        {
+          role: 'user',
+          content: `Мое резюме: [НАЧАЛО РЕЗЮМЕ] ${content} [КОНЕЦ РЕЗЮМЕ]`,
+        },
+      ],
+      temperature: settings.temperature,
+    });
+
+    return {
+      result: completion.choices[0].message.content,
+      usage: completion.usage,
+    };
   }
 }
