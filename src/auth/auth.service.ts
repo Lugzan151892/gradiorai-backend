@@ -43,10 +43,14 @@ export class AuthService {
   }
 
   async getRefreshTokenData(token: string): Promise<{ userId: number }> {
-    const decoded = await this.jwtService.verifyAsync(token, {
-      secret: this.configService.get('JWT_SECRET'),
-    });
-    return { userId: decoded.user_id };
+    try {
+      const decoded = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+      return { userId: decoded.user_id };
+    } catch (e: any) {
+      return null;
+    }
   }
 
   async generateRefreshToken(userId: number) {
@@ -180,10 +184,16 @@ export class AuthService {
     });
 
     const accessToken = this.generateAccessToken(user.id);
+    const now = new Date();
 
-    if (savedToken) {
+    if (savedToken && savedToken.expires_at > now) {
       refreshToken = savedToken.token;
     } else {
+      if (savedToken) {
+        await this.prisma.refreshToken.delete({
+          where: { user_id: user.id },
+        });
+      }
       refreshToken = await this.generateRefreshToken(user.id);
     }
 
