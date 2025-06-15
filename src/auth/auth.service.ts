@@ -330,9 +330,22 @@ export class AuthService {
             user_id: user.id,
           },
         });
+        const now = new Date();
 
         if (!savedRefresh) {
-          return null;
+          return {
+            userIp,
+          };
+        }
+
+        if (savedRefresh && savedRefresh.expires_at < now) {
+          await this.prisma.refreshToken.delete({
+            where: { user_id: user.id },
+          });
+
+          return {
+            userIp,
+          };
         }
 
         const accessToken = this.generateAccessToken(user.id);
