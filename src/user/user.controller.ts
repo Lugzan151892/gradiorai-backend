@@ -15,7 +15,7 @@ export class UserController {
   async getUserData(@Req() request: Request) {
     const user = await this.authService.getUserFromTokens(request);
 
-    if (!user) {
+    if (!user.user) {
       throw new UnauthorizedException('User not found');
     }
 
