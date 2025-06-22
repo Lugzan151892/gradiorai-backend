@@ -416,10 +416,7 @@ export class AuthService {
     const key = `verification:${email}`;
     const storedCode = await this.redis.get(key);
 
-    if (storedCode === code) {
-      return true;
-    }
-    return false;
+    return storedCode === code;
   }
 
   async checkRestoreCode(email: string, code: string) {
