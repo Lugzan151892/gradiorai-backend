@@ -2,7 +2,6 @@ import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Unauthoriz
 import { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from './user.service';
-import { getIpFromRequest } from '../utils/request';
 
 @Controller('user')
 export class UserController {
