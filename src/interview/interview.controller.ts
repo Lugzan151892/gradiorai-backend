@@ -35,8 +35,11 @@ export class InterviewController {
   async getInterview(@Req() request: Request, @Query() query: { id: string }) {
     const user = await this.authService.getUserFromTokens(request);
 
-    if (!user.user.admin) {
-      throw new HttpException({ message: 'Пока только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    if (!user.user) {
+      throw new HttpException(
+        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     if (!query.id) {
@@ -64,7 +67,7 @@ export class InterviewController {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user.user.admin) {
-      throw new HttpException({ message: 'Пока только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+      throw new HttpException({ message: 'Только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
     }
 
     const interviewList = await this.interviewService.getAllUserInterviews(user.user.id);
@@ -76,8 +79,11 @@ export class InterviewController {
   async addUserMessage(@Req() request: Request, @Body() body: { content: string; interviewId: string }) {
     const user = await this.authService.getUserFromTokens(request);
 
-    if (!user.user.admin) {
-      throw new HttpException({ message: 'Пока только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    if (!user.user) {
+      throw new HttpException(
+        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const interview = await this.interviewService.getInterviewById(body.interviewId);
@@ -106,8 +112,11 @@ export class InterviewController {
   async send(@Req() request: Request, @Body() body: { content: string; interviewId: string }) {
     const user = await this.authService.getUserFromTokens(request);
 
-    if (!user.user.admin) {
-      throw new HttpException({ message: 'Пока только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    if (!user.user) {
+      throw new HttpException(
+        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const interview = await this.interviewService.getInterviewById(body.interviewId);
@@ -144,8 +153,11 @@ export class InterviewController {
   ) {
     const user = await this.authService.getUserFromTokens(request);
 
-    if (!user.user.admin) {
-      throw new HttpException({ message: 'Пока только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    if (!user.user) {
+      throw new HttpException(
+        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     if (!files) {
@@ -171,24 +183,25 @@ export class InterviewController {
 
     const newInterview = await this.interviewService.createInterview({ user_prompt: updatedUserPrompt, userId: user.user.id });
 
-    const savedFiles = await this.fileService.moveFilesToStorage(
-      [userCvFile, ...(userVacFile ? [userVacFile] : [])],
-      user.user.id,
-      'interview',
-      newInterview.id,
-      false
-    );
+    /** Скрываем сохранение файлов. */
+    // const savedFiles = await this.fileService.moveFilesToStorage(
+    //   [userCvFile, ...(userVacFile ? [userVacFile] : [])],
+    //   user.user.id,
+    //   'interview',
+    //   newInterview.id,
+    //   false
+    // );
 
-    const updatedInterview = await this.interviewService.updateInterviewFiles(
-      savedFiles.map((file, index) => ({
-        ...file,
-        inside_type: !index ? 'cv' : 'vac',
-      })),
-      newInterview.id,
-      user.user.id
-    );
+    // const updatedInterview = await this.interviewService.updateInterviewFiles(
+    //   savedFiles.map((file, index) => ({
+    //     ...file,
+    //     inside_type: !index ? 'cv' : 'vac',
+    //   })),
+    //   newInterview.id,
+    //   user.user.id
+    // );
 
-    return updatedInterview;
+    return newInterview;
   }
 
   @Delete('delete')
@@ -222,8 +235,11 @@ export class InterviewController {
   async testResume(@Req() request: Request, @UploadedFiles() files: Express.Multer.File[]) {
     const user = await this.authService.getUserFromTokens(request);
 
-    if (!user.user.admin) {
-      throw new HttpException({ message: 'Пока только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    if (!user.user) {
+      throw new HttpException(
+        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     if (!files) {
