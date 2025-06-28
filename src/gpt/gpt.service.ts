@@ -250,6 +250,9 @@ export class GptService {
         },
       });
     }
+
+    fullResponse = '';
+    buffer = '';
   }
 
   async checkResumeByFile(content: string, isAdmin?: boolean) {
