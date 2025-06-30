@@ -1,10 +1,10 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, Res } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Response, Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { GptService, IGptSettings } from '../gpt/gpt.service';
-import { getIpFromRequest } from '../utils/request';
+import { EGPT_SETTINGS_TYPE } from 'src/utils/interfaces/gpt/interfaces';
 
 @Controller('system')
 export class SystemController {
@@ -14,13 +14,13 @@ export class SystemController {
   ) {}
   @Get('logs')
   async getLogs(@Res() res: Response, @Req() request: Request) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const logFilePath = path.join(__dirname, '..', '..', 'logs', 'combined.log');
@@ -41,17 +41,24 @@ export class SystemController {
   }
 
   @Get('gpt-settings')
-  async getGptSettings(@Req() request: Request) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+  async getGptSettings(@Req() request: Request, @Query() query: { type?: EGPT_SETTINGS_TYPE }) {
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not an admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
-    const settings = await this.gptService.getSettings();
+    if (!query.type || !EGPT_SETTINGS_TYPE[query.type]) {
+      throw new HttpException(
+        { message: 'Некорректно указан тип настроек EGPT_SETTINGS_TYPE', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const settings = await this.gptService.getSettings(query.type);
 
     return settings;
   }
@@ -62,18 +69,26 @@ export class SystemController {
     @Body()
     body: {
       settings: IGptSettings;
+      type: EGPT_SETTINGS_TYPE;
     }
   ) {
-    const accessToken = request.headers['authorization']?.split(' ')[1];
-    const refreshToken = request.cookies['refresh_token'];
-    const ip = getIpFromRequest(request);
-    const user = await this.authService.getUserFromTokens(accessToken, refreshToken, ip);
+    const user = await this.authService.getUserFromTokens(request);
 
-    if (!user || !user.user.admin) {
-      throw new UnauthorizedException('Unauthorized or not Admin');
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
-    const result = await this.gptService.updateGptSettings(body.settings);
+    if (!body.type || !EGPT_SETTINGS_TYPE[body.type]) {
+      throw new HttpException(
+        { message: 'Не указан тип настроек EGPT_SETTINGS_TYPE', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const result = await this.gptService.updateGptSettings(body.settings, body.type);
 
     return result;
   }
