@@ -15,8 +15,8 @@ import { InterviewService } from '../interview/interview.service';
 export interface IGptSettings {
   id?: number;
   type?: 'TEST' | 'INTERVIEW';
-  user_model: 'gpt-4o-mini' | 'gpt-4o';
-  admin_model: 'gpt-4o-mini' | 'gpt-4o';
+  user_model: 'gpt-4o-mini' | 'gpt-4o' | 'gpt-4.1';
+  admin_model: 'gpt-4o-mini' | 'gpt-4o' | 'gpt-4.1';
   system_message: string;
   user_message: string;
   admin_amount: number;
@@ -271,6 +271,33 @@ export class GptService {
         {
           role: 'user',
           content: `Мое резюме: [НАЧАЛО РЕЗЮМЕ] ${content} [КОНЕЦ РЕЗЮМЕ]`,
+        },
+      ],
+      temperature: settings.temperature,
+    });
+
+    return {
+      result: completion.choices[0].message.content,
+      usage: completion.usage,
+    };
+  }
+
+  async createResumeByDescr(content: string, isAdmin?: boolean) {
+    const apiKey = this.configService.get<string>('CHAT_SECRET');
+    const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.RESUME_CREATE);
+
+    const openai = new OpenAI({ apiKey: apiKey });
+    const completion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
+      model: isAdmin ? settings.admin_model : settings.user_model,
+      store: true,
+      messages: [
+        {
+          role: 'system',
+          content: settings.system_message,
+        },
+        {
+          role: 'user',
+          content: `О пользователе: [НАЧАЛО ОПИСАНИЯ] ${content} [КОНЕЦ ОПИСАНИЯ]`,
         },
       ],
       temperature: settings.temperature,
