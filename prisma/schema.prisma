@@ -177,3 +177,13 @@ model InterviewFiles {
   inside_type           String
   createdAt             DateTime @default(now())
 }
+
+model SystemFile {
+  id           Int      @id @default(autoincrement())
+  key          String   @unique
+  filename     String
+  path         String
+  mimetype     String
+  size         Int
+  uploadedAt   DateTime @default(now())
+}
