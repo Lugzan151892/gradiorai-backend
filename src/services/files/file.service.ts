@@ -45,7 +45,7 @@ export class FileService {
         const targetPath = path.join(targetDir, file.filename);
         await fs.promises.rename(file.path, targetPath);
 
-        const relativePath = path.relative(process.cwd(), targetPath);
+        const relativePath = path.relative(process.cwd(), targetPath).replace(/\\/g, '/');
 
         return {
           filename: file.filename,
