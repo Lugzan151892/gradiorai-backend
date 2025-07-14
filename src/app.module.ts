@@ -13,6 +13,9 @@ import { winstonConfig } from './config/winston/winston.config';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { UserModule } from './user/user.module';
 import { InterviewModule } from './interview/interview.module';
+import { SystemFilesModule } from './system/files/system-files.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -28,11 +31,16 @@ import { InterviewModule } from './interview/interview.module';
       type: 'single',
       url: 'redis://localhost:6379',
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads/public'),
+      serveRoot: '/public',
+    }),
     AuthModule,
     QuestionsModule,
     SystemModule,
     UserModule,
     InterviewModule,
+    SystemFilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
