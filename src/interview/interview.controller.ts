@@ -235,13 +235,6 @@ export class InterviewController {
   async testResume(@Req() request: Request, @UploadedFiles() files: Express.Multer.File[]) {
     const user = await this.authService.getUserFromTokens(request);
 
-    if (!user.user) {
-      throw new HttpException(
-        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
     if (!files) {
       throw new HttpException({ message: 'Файлы не добавлены', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
     }
@@ -255,6 +248,19 @@ export class InterviewController {
 
     const userCvFileContent = await this.fileService.extractText(userCvFile);
     const checkResult = await this.gptService.checkResumeByFile(userCvFileContent, user.user?.admin);
+
+    return checkResult;
+  }
+
+  @Post('create-resume')
+  async createResume(@Req() request: Request, @Body() body: { prompt: string }) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!body.prompt) {
+      throw new HttpException({ message: 'Не добавлена информация о себе', info: { type: 'prompt' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const checkResult = await this.gptService.createResumeByDescr(body.prompt, user.user?.admin);
 
     return checkResult;
   }
