@@ -105,6 +105,7 @@ model User {
   last_ip          String?
   ip_log           UserIpLog[]
   interview_files  InterviewFiles[]
+  user_actions_log UserActionsLog[]
 }
 
 model UserIpLog {
@@ -159,6 +160,7 @@ model Interview {
   recomendations   String?                @db.LongText
   finished         Boolean                @default(false)
   files            InterviewFiles[]
+  user_actions_log UserActionsLog[]
 }
 
 model InterviewFiles {
@@ -186,4 +188,23 @@ model SystemFile {
   mimetype     String
   size         Int
   uploadedAt   DateTime @default(now())
+}
+
+enum EUSER_ACTION_TYPE {
+  TEST
+  INTERVIEW
+  RESUME_CHECK
+  RESUME_CREATE
+}
+
+model UserActionsLog {
+  id               Int                  @id @default(autoincrement())
+  createdAt        DateTime             @default(now())
+  type             EUSER_ACTION_TYPE
+  user_ip          String?
+  interview        Interview?           @relation(fields: [interview_id], references: [id])
+  user             User?                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id          Int?
+  interview_id     String?
+  content          String?              @db.LongText
 }

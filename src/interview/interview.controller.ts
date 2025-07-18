@@ -21,6 +21,8 @@ import { InterviewService } from '../interview/interview.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { FileService } from '../services/files/file.service';
 import { createTempMulterStorage } from '../services/files/custom-storage.service';
+import { ActionsLogService } from 'src/user/actions-log/actions-log.service';
+import { EUSER_ACTION_TYPE } from 'src/utils/interfaces/enums';
 
 @Controller('interview')
 export class InterviewController {
@@ -28,7 +30,8 @@ export class InterviewController {
     private readonly gptService: GptService,
     private readonly authService: AuthService,
     private readonly interviewService: InterviewService,
-    private readonly fileService: FileService
+    private readonly fileService: FileService,
+    private readonly actionsLog: ActionsLogService
   ) {}
 
   @Get('interview')
@@ -183,6 +186,13 @@ export class InterviewController {
 
     const newInterview = await this.interviewService.createInterview({ user_prompt: updatedUserPrompt, userId: user.user.id });
 
+    await this.actionsLog.createLog({
+      type: EUSER_ACTION_TYPE.INTERVIEW,
+      interviewId: newInterview.id,
+      userId: user.user?.id,
+      userIp: user.userIp,
+    });
+
     /** Скрываем сохранение файлов. */
     // const savedFiles = await this.fileService.moveFilesToStorage(
     //   [userCvFile, ...(userVacFile ? [userVacFile] : [])],
@@ -249,6 +259,16 @@ export class InterviewController {
     const userCvFileContent = await this.fileService.extractText(userCvFile);
     const checkResult = await this.gptService.checkResumeByFile(userCvFileContent, user.user?.admin);
 
+    await this.actionsLog.createLog({
+      type: EUSER_ACTION_TYPE.RESUME_CHECK,
+      userId: user.user?.id,
+      userIp: user.userIp,
+      content: JSON.stringify({
+        user_message: userCvFileContent,
+        resume_result: checkResult.result,
+      }),
+    });
+
     return checkResult;
   }
 
@@ -261,6 +281,16 @@ export class InterviewController {
     }
 
     const checkResult = await this.gptService.createResumeByDescr(body.prompt, user.user?.admin);
+
+    await this.actionsLog.createLog({
+      type: EUSER_ACTION_TYPE.RESUME_CREATE,
+      userId: user.user?.id,
+      userIp: user.userIp,
+      content: JSON.stringify({
+        user_message: body.prompt,
+        resume_result: checkResult.result,
+      }),
+    });
 
     return checkResult;
   }
