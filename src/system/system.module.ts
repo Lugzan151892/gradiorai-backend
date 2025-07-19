@@ -7,9 +7,10 @@ import { GptService } from '../gpt/gpt.service';
 import { QuestionsModule } from '../questions/questions.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { InterviewModule } from '../interview/interview.module';
+import { ActionsLogModule } from 'src/user/actions-log/actions-log.module';
 
 @Module({
-  imports: [AuthModule, QuestionsModule, PrismaModule, GptModule, InterviewModule],
+  imports: [AuthModule, QuestionsModule, PrismaModule, GptModule, InterviewModule, ActionsLogModule],
   providers: [SystemService, GptService],
   controllers: [SystemController],
 })
