@@ -165,6 +165,7 @@ export class GptService {
         techs: questionTechs,
         level: getSkillLevel(params.level),
       }),
+      isAdmin,
     });
 
     return {

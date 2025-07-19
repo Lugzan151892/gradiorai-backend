@@ -44,6 +44,7 @@ export class ActionsLogService {
             }
           : {}),
         content: data.content,
+        is_admin: data.isAdmin,
       },
     });
 

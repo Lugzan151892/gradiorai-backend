@@ -207,4 +207,5 @@ model UserActionsLog {
   user_id          Int?
   interview_id     String?
   content          String?              @db.LongText
+  is_admin         Boolean?
 }

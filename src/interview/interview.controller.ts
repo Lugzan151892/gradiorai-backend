@@ -191,6 +191,7 @@ export class InterviewController {
       interviewId: newInterview.id,
       userId: user.user?.id,
       userIp: user.userIp,
+      isAdmin: user.user?.admin,
     });
 
     /** Скрываем сохранение файлов. */
@@ -267,6 +268,7 @@ export class InterviewController {
         user_message: userCvFileContent,
         resume_result: checkResult.result,
       }),
+      isAdmin: user.user?.admin,
     });
 
     return checkResult;
@@ -290,6 +292,7 @@ export class InterviewController {
         user_message: body.prompt,
         resume_result: checkResult.result,
       }),
+      isAdmin: user.user?.admin,
     });
 
     return checkResult;

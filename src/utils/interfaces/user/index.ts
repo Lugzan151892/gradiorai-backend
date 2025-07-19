@@ -6,4 +6,5 @@ export interface IActionsLogData {
   interviewId?: string;
   userId?: number;
   content?: string;
+  isAdmin?: boolean;
 }
