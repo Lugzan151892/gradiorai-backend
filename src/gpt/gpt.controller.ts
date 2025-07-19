@@ -54,7 +54,7 @@ export class GptController {
       }
     }
 
-    const data = await this.gptService.generateQuestions(body, user?.user.id, user?.user.admin);
+    const data = await this.gptService.generateQuestions(body, user?.user.id, user?.user.admin, user.userIp);
 
     return data;
   }

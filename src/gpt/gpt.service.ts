@@ -4,13 +4,14 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { getSkillLevel, replacePromptKeywords, getDefaultGptSettings } from './utils';
-import { ESKILL_LEVEL } from '../utils/interfaces/enums';
+import { ESKILL_LEVEL, EUSER_ACTION_TYPE } from '../utils/interfaces/enums';
 import { QuestionsService } from '../questions/questions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Observable, Subject } from 'rxjs';
 import { Stream } from 'openai/streaming';
 import { EGPT_SETTINGS_TYPE, IGPTStreamMessageEvent, IInterview } from '../utils/interfaces/gpt/interfaces';
 import { InterviewService } from '../interview/interview.service';
+import { ActionsLogService } from 'src/user/actions-log/actions-log.service';
 
 export interface IGptSettings {
   id?: number;
@@ -48,7 +49,8 @@ export class GptService {
     private readonly questionService: QuestionsService,
     private readonly prismaService: PrismaService,
     @Inject(forwardRef(() => InterviewService))
-    private readonly interviewService: InterviewService
+    private readonly interviewService: InterviewService,
+    private readonly actionsLog: ActionsLogService
   ) {}
 
   async getSettings(type: EGPT_SETTINGS_TYPE) {
@@ -87,7 +89,12 @@ export class GptService {
     return createdSettings;
   }
 
-  async generateQuestions(params: { level: ESKILL_LEVEL; techs?: number[] }, userId?: number, isAdmin?: boolean) {
+  async generateQuestions(
+    params: { level: ESKILL_LEVEL; techs?: number[] },
+    userId?: number,
+    isAdmin?: boolean,
+    userIp?: string
+  ) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
     const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.TEST);
 
@@ -137,6 +144,28 @@ export class GptService {
       ],
       response_format: zodResponseFormat(GPTResponse, 'event'),
       temperature: settings.temperature,
+    });
+
+    const resultQuestions = [...questions, ...JSON.parse(completion.choices[0].message.content).questions];
+
+    console.log(
+      JSON.stringify({
+        questions: resultQuestions,
+        techs: questionTechs,
+        level: getSkillLevel(params.level),
+      })
+    );
+
+    await this.actionsLog.createLog({
+      type: EUSER_ACTION_TYPE.TEST,
+      userId: userId,
+      userIp: userIp,
+      content: JSON.stringify({
+        questions: resultQuestions,
+        techs: questionTechs,
+        level: getSkillLevel(params.level),
+      }),
+      isAdmin,
     });
 
     return {
