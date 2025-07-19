@@ -72,6 +72,9 @@ export class UserService {
         },
         ip: true,
       },
+      orderBy: {
+        created_at: 'desc',
+      },
     });
 
     return result;
