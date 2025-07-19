@@ -176,6 +176,9 @@ export class InterviewService {
           },
         },
       },
+      orderBy: {
+        created_at: 'desc',
+      },
     });
 
     return result;
