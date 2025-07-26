@@ -1,7 +1,8 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Post, Query, Req, Res } from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';
 import { Request } from 'express';
 import { SystemTransactionsService } from './system-transactions-service';
+import { convertDateToISO } from 'src/utils/date';
 
 @Controller('user/system-transactions')
 export class SystemTransactionsController {
@@ -22,6 +23,30 @@ export class SystemTransactionsController {
     }
 
     const result = await this.systemTransactionService.getTransactions();
+
+    return result;
+  }
+
+  @Get('transaction')
+  async getTransactionById(@Req() request: Request, @Query() query: { id: string }) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user) {
+      throw new HttpException(
+        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    if (!query.id) {
+      throw new HttpException({ message: 'Некорректно указан id.' }, HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.systemTransactionService.getTransactionById(+query.id);
+
+    if (!result) {
+      throw new HttpException({ message: `Транзакция с id ${query.id} не найдена.` }, HttpStatus.BAD_REQUEST);
+    }
 
     return result;
   }
@@ -50,7 +75,49 @@ export class SystemTransactionsController {
       throw new HttpException('test', HttpStatus.BAD_REQUEST);
     }
 
-    const result = await this.systemTransactionService.createTransaction(body);
+    const paidTime = convertDateToISO(body.paid_time);
+
+    if (!paidTime) {
+      throw new HttpException(
+        { message: 'Некорректно указана дата платежа', info: { type: 'paid_time' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const result = await this.systemTransactionService.createTransaction({
+      ...body,
+      paid_time: paidTime,
+    });
+
+    return result;
+  }
+
+  @Delete('transaction')
+  async deleteTransactionById(
+    @Req() request: Request,
+    @Body()
+    body: {
+      id: number;
+    }
+  ) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user) {
+      throw new HttpException(
+        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    if (!body.id) {
+      throw new HttpException({ message: 'Некорректно указан id.' }, HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.systemTransactionService.deleteTransaction(body.id);
+
+    if (!result) {
+      throw new HttpException({ message: `Транзакция с id ${body.id} не найдена.` }, HttpStatus.BAD_REQUEST);
+    }
 
     return result;
   }
