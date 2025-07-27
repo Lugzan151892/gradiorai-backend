@@ -12,7 +12,7 @@ export class SystemTransactionsController {
   ) {}
 
   @Get('all')
-  async getAllTransactions(@Req() request: Request) {
+  async getAllTransactions(@Req() request: Request, @Query() query: { only_mine: 'true' | 'false' }) {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user.user?.admin) {
@@ -22,7 +22,7 @@ export class SystemTransactionsController {
       );
     }
 
-    const result = await this.systemTransactionService.getTransactions();
+    const result = await this.systemTransactionService.getTransactions(query.only_mine === 'true' ? user.user.id : undefined);
 
     return result;
   }

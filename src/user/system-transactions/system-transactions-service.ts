@@ -5,8 +5,15 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class SystemTransactionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getTransactions() {
+  async getTransactions(userId?: number) {
     const result = await this.prisma.serviceDevelopmentSpendTransaction.findMany({
+      ...(userId
+        ? {
+            where: {
+              transaction_maker_id: userId,
+            },
+          }
+        : {}),
       include: {
         transaction_maker: {
           select: {
