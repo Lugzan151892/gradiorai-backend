@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -76,6 +76,49 @@ export class SystemTransactionsService {
     const result = await this.prisma.serviceDevelopmentSpendTransaction.delete({
       where: {
         id,
+      },
+    });
+
+    return result;
+  }
+
+  async updateTransaction(data: {
+    id: number;
+    transaction_maker_id?: number;
+    paid_time?: string;
+    amount?: number;
+    reason?: string;
+  }) {
+    const { id, paid_time, amount, reason, transaction_maker_id } = data;
+
+    const existedTransaction = await this.prisma.serviceDevelopmentSpendTransaction.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!existedTransaction) {
+      throw new HttpException(`Транзакция с id ${data.id} не найдена`, HttpStatus.BAD_REQUEST);
+    }
+
+    const updateData: any = {};
+
+    if (amount && amount !== existedTransaction.amount) updateData.amount = amount;
+    if (paid_time) updateData.paid_time = paid_time;
+    if (reason && reason !== existedTransaction.reason) updateData.reason = reason;
+    if (transaction_maker_id && transaction_maker_id !== existedTransaction.transaction_maker_id) {
+      updateData.transaction_maker = {
+        connect: { id: transaction_maker_id },
+      };
+    }
+
+    const result = await this.prisma.serviceDevelopmentSpendTransaction.update({
+      where: {
+        id,
+      },
+      data: updateData,
+      select: {
+        id: true,
       },
     });
 

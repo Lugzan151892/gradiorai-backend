@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, Post, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Post, Put, Query, Req, Res } from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';
 import { Request } from 'express';
 import { SystemTransactionsService } from './system-transactions-service';
@@ -51,7 +51,7 @@ export class SystemTransactionsController {
     return result;
   }
 
-  @Post('add')
+  @Post('transaction')
   async addTransaction(
     @Body()
     body: {
@@ -72,7 +72,7 @@ export class SystemTransactionsController {
     }
 
     if (!body.amount || !body.paid_time || !body.transaction_maker_id || !body.reason) {
-      throw new HttpException('test', HttpStatus.BAD_REQUEST);
+      throw new HttpException('Не заполнены обязательные данные', HttpStatus.BAD_REQUEST);
     }
 
     const paidTime = convertDateToISO(body.paid_time);
@@ -85,6 +85,41 @@ export class SystemTransactionsController {
     }
 
     const result = await this.systemTransactionService.createTransaction({
+      ...body,
+      paid_time: paidTime,
+    });
+
+    return result;
+  }
+
+  @Put('transaction')
+  async updateTransaction(
+    @Body()
+    body: {
+      id: number;
+      transaction_maker_id?: number;
+      paid_time?: string;
+      amount?: number;
+      reason?: string;
+    },
+    @Req() request: Request
+  ) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    if (!body.amount && !body.paid_time && !body.transaction_maker_id && !body.reason) {
+      throw new HttpException('test', HttpStatus.BAD_REQUEST);
+    }
+
+    const paidTime = body.paid_time ? convertDateToISO(body.paid_time) : null;
+
+    const result = await this.systemTransactionService.updateTransaction({
       ...body,
       paid_time: paidTime,
     });
