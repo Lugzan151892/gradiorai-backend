@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from './user.service';
@@ -40,7 +40,7 @@ export class UserController {
   }
 
   @Get('users')
-  async getUsers(@Req() request: Request) {
+  async getUsers(@Query() query: { only_admins?: 'true' | 'false' }, @Req() request: Request) {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user || !user?.user.admin) {
@@ -49,8 +49,7 @@ export class UserController {
         HttpStatus.BAD_REQUEST
       );
     }
-
-    const users = await this.userService.getUsers();
+    const users = await this.userService.getUsers(query.only_admins === 'true');
 
     return users;
   }
