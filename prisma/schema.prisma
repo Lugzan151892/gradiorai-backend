@@ -90,22 +90,23 @@ model Reviews {
 }
 
 model User {
-  id               Int                    @id @default(autoincrement())
-  email            String                 @unique
-  password         String
-  created_at       DateTime               @default(now())
-  updated_at       DateTime               @updatedAt
-  admin            Boolean                @default(false)
-  questions_passed UserQuestionProgress[]
-  saved_question   Question[]
-  refresh_token    RefreshToken?
-  test_reviews     Reviews[]
-  interviews       Interview[]
-  last_login       DateTime?
-  last_ip          String?
-  ip_log           UserIpLog[]
-  interview_files  InterviewFiles[]
-  user_actions_log UserActionsLog[]
+  id                                    Int                    @id @default(autoincrement())
+  email                                 String                 @unique
+  password                              String
+  created_at                            DateTime               @default(now())
+  updated_at                            DateTime               @updatedAt
+  admin                                 Boolean                @default(false)
+  questions_passed                      UserQuestionProgress[]
+  saved_question                        Question[]
+  refresh_token                         RefreshToken?
+  test_reviews                          Reviews[]
+  interviews                            Interview[]
+  last_login                            DateTime?
+  last_ip                               String?
+  ip_log                                UserIpLog[]
+  interview_files                       InterviewFiles[]
+  user_actions_log                      UserActionsLog[]
+  user_service_transactions             ServiceDevelopmentSpendTransaction[]
 }
 
 model UserIpLog {
@@ -203,9 +204,19 @@ model UserActionsLog {
   type             EUSER_ACTION_TYPE
   user_ip          String?
   interview        Interview?           @relation(fields: [interview_id], references: [id])
-  user             User?                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user             User?                @relation(fields: [user_id], references: [id])
   user_id          Int?
   interview_id     String?
   content          String?              @db.LongText
   is_admin         Boolean?
+}
+
+model ServiceDevelopmentSpendTransaction {
+  id                        Int                  @id @default(autoincrement())
+  created_at                DateTime             @default(now())
+  transaction_maker         User?                @relation(fields: [transaction_maker_id], references: [id])
+  paid_time                 DateTime
+  transaction_maker_id      Int?
+  amount                    Float
+  reason                    String?              @db.LongText
 }

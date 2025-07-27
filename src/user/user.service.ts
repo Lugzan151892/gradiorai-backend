@@ -32,8 +32,15 @@ export class UserService {
     return result;
   }
 
-  async getUsers() {
+  async getUsers(onlyAdmins: boolean) {
     const result = await this.prisma.user.findMany({
+      ...(onlyAdmins
+        ? {
+            where: {
+              admin: true,
+            },
+          }
+        : {}),
       select: {
         id: true,
         email: true,
@@ -44,7 +51,7 @@ export class UserService {
         ip_log: {
           take: 3,
           orderBy: {
-            createdAt: 'desc', // по убыванию времени — последние сверху
+            createdAt: 'desc',
           },
         },
         questions_passed: true,
