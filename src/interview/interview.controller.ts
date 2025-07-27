@@ -55,7 +55,7 @@ export class InterviewController {
       throw new HttpException({ message: `Интервью с id ${query.id} не найдено.` }, HttpStatus.BAD_REQUEST);
     }
 
-    if (result.user_id !== user.user?.id) {
+    if (result.user_id !== user.user?.id && !user.user.admin) {
       throw new HttpException(
         { message: `Интервью с id ${query.id} не Ваше. Можно получить доступ только к своим интервью.` },
         HttpStatus.BAD_REQUEST
