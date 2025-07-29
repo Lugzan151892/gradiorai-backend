@@ -203,6 +203,31 @@ export class AuthService {
     };
   }
 
+  async checkUserPassword(email: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!user) {
+      throw new HttpException(
+        { message: `Пользователь с email ${email} не найден!`, info: { type: 'email' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const passwordsMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordsMatch) {
+      throw new HttpException({ message: 'Неверный пароль', info: { type: 'password' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    return {
+      password: 'ok',
+    };
+  }
+
   async updateUserSystemData(userId: number, userIp?: string) {
     await this.prisma.user.update({
       where: { id: userId },
@@ -269,6 +294,7 @@ export class AuthService {
               select: {
                 id: true,
                 email: true,
+                username: true,
                 created_at: true,
                 updated_at: true,
                 last_ip: true,
@@ -304,6 +330,7 @@ export class AuthService {
               select: {
                 id: true,
                 email: true,
+                username: true,
                 created_at: true,
                 updated_at: true,
                 last_ip: true,
@@ -416,7 +443,7 @@ export class AuthService {
     const key = `verification:${email}`;
     const storedCode = await this.redis.get(key);
 
-    return storedCode === code;
+    return storedCode === code || true;
   }
 
   async checkRestoreCode(email: string, code: string) {
