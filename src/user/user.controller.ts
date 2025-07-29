@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Put, Query, Req, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from './user.service';
@@ -68,5 +68,22 @@ export class UserController {
     const reviews = await this.userService.getAllReviews();
 
     return reviews;
+  }
+
+  @Put('username')
+  async setUserName(
+    @Body()
+    body: {
+      username: string;
+    },
+    @Req() request: Request
+  ) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user) {
+      throw new HttpException({ message: 'Пользователь не авторизован.', info: { type: 'user' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    return await this.userService.setUserName(user.user.id, body.username);
   }
 }
