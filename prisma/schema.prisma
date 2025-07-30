@@ -96,6 +96,7 @@ model User {
   created_at                            DateTime               @default(now())
   updated_at                            DateTime               @updatedAt
   admin                                 Boolean                @default(false)
+  username                              String?                @unique
   questions_passed                      UserQuestionProgress[]
   saved_question                        Question[]
   refresh_token                         RefreshToken?
