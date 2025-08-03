@@ -4,9 +4,10 @@ import { UserController } from './user.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { SystemTransactionModule } from './system-transactions/system-transactions.module';
+import { InterviewModule } from 'src/interview/interview.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, SystemTransactionModule],
+  imports: [PrismaModule, AuthModule, SystemTransactionModule, InterviewModule],
   providers: [UserService],
   controllers: [UserController],
 })
