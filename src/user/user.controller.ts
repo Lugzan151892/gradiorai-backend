@@ -2,12 +2,14 @@ import { Body, Controller, Get, HttpException, HttpStatus, Post, Put, Query, Req
 import { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from './user.service';
+import { InterviewService } from 'src/interview/interview.service';
 
 @Controller('user')
 export class UserController {
   constructor(
     private readonly authService: AuthService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
+    private readonly interviewService: InterviewService
   ) {}
 
   @Get('user')
@@ -85,5 +87,18 @@ export class UserController {
     }
 
     return await this.userService.setUserName(user.user.id, body.username);
+  }
+
+  @Get('interviews')
+  async getInterviews(@Req() request: Request) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user?.user) {
+      throw new HttpException({ message: 'Не авторизован.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const interviews = await this.interviewService.getAllUserInterviews(user.user.id);
+
+    return interviews;
   }
 }
