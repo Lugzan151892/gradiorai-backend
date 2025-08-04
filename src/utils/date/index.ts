@@ -23,3 +23,19 @@ export const convertDateToISO = (input: string): string | null => {
 
   return date.toISOString();
 };
+
+export const parsePeriodToDate = (period: string): Date => {
+  const now = new Date();
+
+  const match = period.match(/^(\d+)d$/);
+  if (!match) {
+    throw new Error('Неверный формат периода. Используй, например: 7d, 30d, 365d');
+  }
+
+  const days = parseInt(match[1], 10);
+
+  const fromDate = new Date();
+  fromDate.setDate(now.getDate() - days);
+
+  return fromDate;
+};

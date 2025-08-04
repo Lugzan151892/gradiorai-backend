@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IFile } from '../utils/interfaces/files';
+import { parsePeriodToDate } from 'src/utils/date';
 
 interface IInterviewFile extends IFile {
   inside_type: 'cv' | 'vac';
@@ -23,6 +24,8 @@ export class InterviewService {
         messages: true,
         finished: true,
         recomendations: true,
+        score: true,
+        success: true,
         user_id: true,
         files: true,
       },
@@ -81,6 +84,8 @@ export class InterviewService {
         messages: true,
         finished: true,
         recomendations: true,
+        score: true,
+        success: true,
         user_id: true,
         files: true,
       },
@@ -116,6 +121,8 @@ export class InterviewService {
         messages: true,
         finished: true,
         recomendations: true,
+        score: true,
+        success: true,
         user_id: true,
         files: true,
       },
@@ -125,7 +132,7 @@ export class InterviewService {
   }
 
   async finishInterview(interviewId: string, json: string) {
-    const result = JSON.parse(json) as { status: string; score: string; summary: string };
+    const result = JSON.parse(json) as { status: string; score: string; summary: string; success: string };
 
     const updatedInterview = await this.prismaService.interview.update({
       where: {
@@ -134,6 +141,8 @@ export class InterviewService {
       data: {
         finished: true,
         recomendations: result.summary,
+        score: result.score,
+        success: result.success === 'true',
       },
       select: {
         id: true,
@@ -143,6 +152,8 @@ export class InterviewService {
         messages: true,
         finished: true,
         recomendations: true,
+        score: true,
+        success: true,
         user_id: true,
         files: true,
       },
@@ -151,11 +162,25 @@ export class InterviewService {
     return updatedInterview;
   }
 
-  async getAllUserInterviews(userId: number) {
+  async getAllUserInterviews(userId: number, period?: string) {
+    console.log(period);
+    const where: {
+      user_id: number;
+      created_at?: {
+        gte: Date;
+      };
+    } = {
+      user_id: userId,
+    };
+
+    if (period) {
+      const fromDate = parsePeriodToDate(period);
+      console.log(fromDate);
+      where.created_at = { gte: fromDate };
+    }
+
     const result = await this.prismaService.interview.findMany({
-      where: {
-        user_id: userId,
-      },
+      where,
       select: {
         id: true,
         created_at: true,
@@ -163,6 +188,8 @@ export class InterviewService {
         user_prompt: true,
         finished: true,
         user_id: true,
+        success: true,
+        score: true,
         files: {
           select: {
             filename: true,
