@@ -90,14 +90,14 @@ export class UserController {
   }
 
   @Get('interviews')
-  async getInterviews(@Req() request: Request) {
+  async getInterviews(@Req() request: Request, @Query() query: { period?: string }) {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user?.user) {
       throw new HttpException({ message: 'Не авторизован.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
     }
 
-    const interviews = await this.interviewService.getAllUserInterviews(user.user.id);
+    const interviews = await this.interviewService.getAllUserInterviews(user.user.id, query.period);
 
     return interviews;
   }
