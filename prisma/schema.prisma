@@ -161,6 +161,8 @@ model Interview {
   user_id          Int
   recomendations   String?                @db.LongText
   finished         Boolean                @default(false)
+  success          Boolean?
+  score            String?
   files            InterviewFiles[]
   user_actions_log UserActionsLog[]
 }
