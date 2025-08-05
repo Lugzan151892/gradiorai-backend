@@ -10,15 +10,17 @@ import {
   Req,
   HttpStatus,
   HttpException,
+  Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createTempMulterStorage } from 'src/services/files/custom-storage.service';
 import { FileService } from '../../services/files/file.service';
 import { UserFilesService } from './user-files.service';
 import { EUSER_FILES_TYPE } from '@prisma/client';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { AuthService } from 'src/auth/auth.service';
-
+import * as path from 'path';
+import * as fs from 'fs';
 @Controller('user/files')
 export class UserFilesController {
   constructor(
@@ -36,7 +38,7 @@ export class UserFilesController {
       throw new HttpException({ message: 'Пользователь не авторизован.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
     }
 
-    const savedFiles = await this.fileService.moveFilesToStorage([file], 0, 'system', key, false);
+    const savedFiles = await this.fileService.moveFilesToStorage([file], user.user.id, 'files', key, false);
     const fileMeta = savedFiles[0];
 
     await this.userFilesService.saveOrReplace(key.toUpperCase() as EUSER_FILES_TYPE, fileMeta, user.user.id);
@@ -45,19 +47,54 @@ export class UserFilesController {
   }
 
   @Delete(':key')
-  async deleteSystemFile(@Param('key') key: string) {
-    const file = await this.userFilesService.findByKey(key);
+  async deleteUserFile(@Param('key') key: string, @Req() request: Request) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user) {
+      throw new HttpException({ message: 'Пользователь не авторизован.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const file = await this.userFilesService.findByKey(key.toUpperCase() as EUSER_FILES_TYPE, user.user.id);
     if (!file) throw new NotFoundException('Файл не найден');
 
-    await this.userFilesService.deleteByKey(key);
+    await this.userFilesService.deleteByKey(key.toUpperCase() as EUSER_FILES_TYPE, user.user.id);
     return { message: 'Файл удален' };
   }
 
   @Get(':key')
-  async getSystemFile(@Param('key') key: string) {
-    const file = await this.userFilesService.findByKey(key);
+  async getUserFile(@Param('key') key: string, @Req() request: Request) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user) {
+      throw new HttpException({ message: 'Пользователь не авторизован.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const file = await this.userFilesService.findByKey(key.toUpperCase() as EUSER_FILES_TYPE, user.user.id);
     if (!file) throw new NotFoundException('Файл не найден');
 
     return file;
+  }
+
+  @Get('/download/:key')
+  async serveUserFile(@Param('key') key: string, @Req() request: Request, @Res() res: Response) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user?.user) {
+      throw new HttpException({ message: 'Пользователь не авторизован.', info: { type: 'auth' } }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const file = await this.userFilesService.findByKey(key.toUpperCase() as EUSER_FILES_TYPE, user.user.id);
+
+    if (!file) {
+      throw new NotFoundException('Файл не найден');
+    }
+
+    const filePath = path.join(process.cwd(), file.path);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Файл на диске не найден');
+    }
+
+    return res.sendFile(filePath);
   }
 }

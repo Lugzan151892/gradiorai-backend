@@ -45,18 +45,27 @@ export class UserFilesService {
     });
   }
 
-  async deleteByKey(key: string) {
-    const file = await this.findByKey(key);
+  async deleteByKey(type: EUSER_FILES_TYPE, userId: number) {
+    const file = await this.findByKey(type, userId);
     if (!file) return;
 
     const fullPath = path.join(process.cwd(), file.path);
     if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
 
-    return this.prisma.systemFile.delete({ where: { key } });
+    return this.prisma.userFiles.delete({
+      where: {
+        id: file.id,
+      },
+    });
   }
 
-  async findByKey(key: string) {
-    return this.prisma.systemFile.findUnique({ where: { key } });
+  async findByKey(type: EUSER_FILES_TYPE, userId: number) {
+    return this.prisma.userFiles.findFirst({
+      where: {
+        type: type,
+        user_id: userId,
+      },
+    });
   }
 
   async findAll() {
