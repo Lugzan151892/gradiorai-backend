@@ -106,8 +106,26 @@ model User {
   last_ip                               String?
   ip_log                                UserIpLog[]
   interview_files                       InterviewFiles[]
+  files                                 UserFiles[]
   user_actions_log                      UserActionsLog[]
   user_service_transactions             ServiceDevelopmentSpendTransaction[]
+}
+
+enum EUSER_FILES_TYPE {
+  AVATAR
+}
+
+model UserFiles {
+  id                    String   @id @default(uuid())
+  filename              String
+  mimetype              String
+  size                  Int
+  path                  String
+  public                Boolean
+  user_id               Int
+  user                  User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  type                  EUSER_FILES_TYPE
+  createdAt             DateTime @default(now())
 }
 
 model UserIpLog {
