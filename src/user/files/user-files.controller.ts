@@ -21,6 +21,9 @@ import { Request, Response } from 'express';
 import { AuthService } from 'src/auth/auth.service';
 import * as path from 'path';
 import * as fs from 'fs';
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
 @Controller('user/files')
 export class UserFilesController {
   constructor(
@@ -34,8 +37,14 @@ export class UserFilesController {
   async uploadUserFile(@Param('key') key: string, @UploadedFile() file: Express.Multer.File, @Req() request: Request) {
     const user = await this.authService.getUserFromTokens(request);
 
+    console.log(file);
+
     if (!user.user) {
       throw new HttpException({ message: 'Пользователь не авторизован.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      throw new HttpException({ message: 'Размер файла превышает 2MB.', info: { type: 'file' } }, HttpStatus.BAD_REQUEST);
     }
 
     const savedFiles = await this.fileService.moveFilesToStorage([file], user.user.id, 'files', key, false);
