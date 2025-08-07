@@ -20,6 +20,7 @@ export class SystemFilesService {
         data: {
           filename: fileMeta.filename,
           path: fileMeta.path,
+          originalName: fileMeta.originalName,
           mimetype: fileMeta.mimetype,
           size: fileMeta.size,
           uploadedAt: new Date(),
@@ -31,6 +32,7 @@ export class SystemFilesService {
       data: {
         key,
         filename: fileMeta.filename,
+        originalName: fileMeta.originalName,
         path: fileMeta.path,
         mimetype: fileMeta.mimetype,
         size: fileMeta.size,

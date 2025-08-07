@@ -20,7 +20,7 @@ export class UserFilesService {
         where: { id: existing.id },
         data: {
           filename: fileMeta.filename,
-
+          originalName: fileMeta.originalName,
           path: fileMeta.path,
           mimetype: fileMeta.mimetype,
           size: fileMeta.size,

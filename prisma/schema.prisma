@@ -208,6 +208,7 @@ model SystemFile {
   id           Int      @id @default(autoincrement())
   key          String   @unique
   filename     String
+  originalName String?
   path         String
   mimetype     String
   size         Int
