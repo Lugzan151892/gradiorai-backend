@@ -306,6 +306,19 @@ export class AuthService {
                   },
                 },
                 admin: true,
+                files: {
+                  select: {
+                    id: true,
+                    filename: true,
+                    originalName: true,
+                    mimetype: true,
+                    size: true,
+                    path: true,
+                    public: true,
+                    type: true,
+                    createdAt: true,
+                  },
+                },
               },
             })
           : null;
@@ -342,6 +355,19 @@ export class AuthService {
                   },
                 },
                 admin: true,
+                files: {
+                  select: {
+                    id: true,
+                    filename: true,
+                    originalName: true,
+                    mimetype: true,
+                    size: true,
+                    path: true,
+                    public: true,
+                    type: true,
+                    createdAt: true,
+                  },
+                },
               },
             })
           : null;
