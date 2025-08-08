@@ -6,6 +6,11 @@ import * as path from 'path';
 import { IFile } from '../../utils/interfaces/files';
 import * as fsPromises from 'fs/promises';
 
+const fixOriginalName = (wrongName: string): string => {
+  const bytes = Uint8Array.from([...wrongName].map((ch) => ch.charCodeAt(0)));
+  return Buffer.from(bytes).toString('utf8');
+};
+
 @Injectable()
 export class FileService {
   ensureDirExists(dirPath: string) {
@@ -50,6 +55,7 @@ export class FileService {
         return {
           filename: file.filename,
           mimetype: file.mimetype,
+          originalName: fixOriginalName(file.originalname),
           size: file.size,
           path: relativePath,
           public: isPublic,

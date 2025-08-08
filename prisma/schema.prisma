@@ -113,11 +113,13 @@ model User {
 
 enum EUSER_FILES_TYPE {
   AVATAR
+  CV
 }
 
 model UserFiles {
   id                    String   @id @default(uuid())
   filename              String
+  originalName          String?
   mimetype              String
   size                  Int
   path                  String
@@ -206,6 +208,7 @@ model SystemFile {
   id           Int      @id @default(autoincrement())
   key          String   @unique
   filename     String
+  originalName String?
   path         String
   mimetype     String
   size         Int

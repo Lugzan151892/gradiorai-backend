@@ -1,6 +1,7 @@
 export interface IFile {
   filename: string;
   mimetype: string;
+  originalName: string;
   size: number;
   path: string;
   public: boolean;
