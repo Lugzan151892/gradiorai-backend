@@ -37,8 +37,6 @@ export class UserFilesController {
   async uploadUserFile(@Param('key') key: string, @UploadedFile() file: Express.Multer.File, @Req() request: Request) {
     const user = await this.authService.getUserFromTokens(request);
 
-    console.log(file);
-
     if (!user.user) {
       throw new HttpException({ message: 'Пользователь не авторизован.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
     }
@@ -103,6 +101,8 @@ export class UserFilesController {
     if (!fs.existsSync(filePath)) {
       throw new NotFoundException('Файл на диске не найден');
     }
+
+    res.setHeader('Cache-Control', 'private, max-age=604800');
 
     return res.sendFile(filePath);
   }

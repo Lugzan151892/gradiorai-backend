@@ -128,6 +128,7 @@ model UserFiles {
   user                  User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   type                  EUSER_FILES_TYPE
   createdAt             DateTime @default(now())
+  updatedAt             DateTime? @updatedAt
 }
 
 model UserIpLog {
