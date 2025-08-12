@@ -163,7 +163,6 @@ export class InterviewService {
   }
 
   async getAllUserInterviews(userId: number, period?: string) {
-    console.log(period);
     const where: {
       user_id: number;
       created_at?: {
@@ -175,7 +174,6 @@ export class InterviewService {
 
     if (period) {
       const fromDate = parsePeriodToDate(period);
-      console.log(fromDate);
       where.created_at = { gte: fromDate };
     }
 
