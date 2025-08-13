@@ -125,4 +125,15 @@ export class AuthController {
 
     return result;
   }
+
+  @Post('check-password')
+  async checkUserPassword(
+    @Body()
+    body: {
+      email: string;
+      password: string;
+    }
+  ) {
+    return await this.authService.checkUserPassword(body.email, body.password);
+  }
 }

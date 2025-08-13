@@ -3,55 +3,71 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IFile } from 'src/utils/interfaces/files';
+import { EUSER_FILES_TYPE } from '@prisma/client';
 
 @Injectable()
-export class SystemFilesService {
+export class UserFilesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async saveOrReplace(key: string, fileMeta: IFile) {
-    const existing = await this.prisma.systemFile.findUnique({ where: { key } });
+  async saveOrReplace(type: EUSER_FILES_TYPE, fileMeta: IFile, userId: number) {
+    const existing = await this.prisma.userFiles.findFirst({ where: { type, user_id: userId } });
 
     if (existing) {
       const fullPath = path.join(process.cwd(), existing.path);
       if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
 
-      return this.prisma.systemFile.update({
-        where: { key },
+      return this.prisma.userFiles.update({
+        where: { id: existing.id },
         data: {
           filename: fileMeta.filename,
-          path: fileMeta.path,
           originalName: fileMeta.originalName,
+          path: fileMeta.path,
           mimetype: fileMeta.mimetype,
           size: fileMeta.size,
-          uploadedAt: new Date(),
+          type,
         },
       });
     }
 
-    return this.prisma.systemFile.create({
+    return this.prisma.userFiles.create({
       data: {
-        key,
+        public: false,
+        type,
         filename: fileMeta.filename,
         originalName: fileMeta.originalName,
         path: fileMeta.path,
         mimetype: fileMeta.mimetype,
         size: fileMeta.size,
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
       },
     });
   }
 
-  async deleteByKey(key: string) {
-    const file = await this.findByKey(key);
+  async deleteByKey(type: EUSER_FILES_TYPE, userId: number) {
+    const file = await this.findByKey(type, userId);
     if (!file) return;
 
     const fullPath = path.join(process.cwd(), file.path);
     if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
 
-    return this.prisma.systemFile.delete({ where: { key } });
+    return this.prisma.userFiles.delete({
+      where: {
+        id: file.id,
+      },
+    });
   }
 
-  async findByKey(key: string) {
-    return this.prisma.systemFile.findUnique({ where: { key } });
+  async findByKey(type: EUSER_FILES_TYPE, userId: number) {
+    return this.prisma.userFiles.findFirst({
+      where: {
+        type: type,
+        user_id: userId,
+      },
+    });
   }
 
   async findAll() {
