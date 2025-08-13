@@ -148,14 +148,6 @@ export class GptService {
 
     const resultQuestions = [...questions, ...JSON.parse(completion.choices[0].message.content).questions];
 
-    console.log(
-      JSON.stringify({
-        questions: resultQuestions,
-        techs: questionTechs,
-        level: getSkillLevel(params.level),
-      })
-    );
-
     await this.actionsLog.createLog({
       type: EUSER_ACTION_TYPE.TEST,
       userId: userId,
