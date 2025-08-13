@@ -102,6 +102,31 @@ export class UserFilesController {
       throw new NotFoundException('Файл на диске не найден');
     }
 
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
+
+    return res.sendFile(filePath);
+  }
+
+  @Get('/view/:key')
+  async viewUserFile(@Param('key') key: string, @Req() request: Request, @Res() res: Response) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user?.user) {
+      throw new HttpException({ message: 'Пользователь не авторизован.', info: { type: 'auth' } }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const file = await this.userFilesService.findByKey(key.toUpperCase() as EUSER_FILES_TYPE, user.user.id);
+
+    if (!file) {
+      throw new NotFoundException('Файл не найден');
+    }
+
+    const filePath = path.join(process.cwd(), file.path);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Файл на диске не найден');
+    }
+
     res.setHeader('Cache-Control', 'private, max-age=604800');
 
     return res.sendFile(filePath);
