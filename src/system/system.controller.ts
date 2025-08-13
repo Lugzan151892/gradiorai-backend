@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Query, Req, Res } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Response, Request } from 'express';
@@ -91,5 +91,58 @@ export class SystemController {
     const result = await this.gptService.updateGptSettings(body.settings, body.type);
 
     return result;
+  }
+
+  @Get('backups')
+  async getBackupFiles(@Res() res: Response, @Req() request: Request) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const backupDirPath = path.join(__dirname, '..', '..', 'db-backups');
+
+    const files = fs
+      .readdirSync(backupDirPath)
+      .filter((file) => file.endsWith('.sql'))
+      .map((file) => ({
+        name: file,
+        path: path.join(backupDirPath, file),
+        size: fs.statSync(path.join(backupDirPath, file)).size,
+        createdAt: fs.statSync(path.join(backupDirPath, file)).ctime,
+      }));
+
+    return res.send(files.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+  }
+
+  @Get('/backups/download/:name')
+  async downloadBackupFile(@Param('name') name: string, @Req() request: Request, @Res() res: Response) {
+    const user = await this.authService.getUserFromTokens(request);
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    if (name.includes('..') || name.includes('/')) {
+      throw new HttpException('Некорректное имя файла', HttpStatus.BAD_REQUEST);
+    }
+
+    const backupDirPath = path.join(__dirname, '..', '..', 'db-backups');
+    const filePath = path.join(backupDirPath, name);
+
+    if (!fs.existsSync(filePath)) {
+      throw new HttpException({ message: 'Файл бэкапа не найден.', info: { type: 'file' } }, HttpStatus.NOT_FOUND);
+    }
+
+    res.setHeader('Cache-Control', 'private, max-age=604800');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+
+    return res.sendFile(filePath);
   }
 }

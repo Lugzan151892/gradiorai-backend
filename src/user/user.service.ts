@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -85,5 +85,65 @@ export class UserService {
     });
 
     return result;
+  }
+
+  async setUserName(id: number, username: string) {
+    if (username.length > 20) {
+      throw new HttpException(
+        { message: `Имя ${username} должно быть не более 20 символов`, info: { type: 'username' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    if (!username.match(/^[a-zA-Z0-9_-]+$/)) {
+      throw new HttpException(
+        { message: `Имя может содержать только латинские буквы, цифры тире или подчеркивание`, info: { type: 'username' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    if (!username.match(/[a-zA-Z0-9]/)) {
+      throw new HttpException(
+        { message: `Имя должно содержать хотя бы 1 латинскую букву или цифру`, info: { type: 'username' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!user) {
+      throw new HttpException({ message: `Пользователь с id ${id} не найден.`, info: { type: 'user' } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (!user) {
+      throw new HttpException(
+        { message: `Пользователь с именем ${username} уже существует.`, info: { type: 'user' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: {
+        id,
+      },
+      data: {
+        username,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+      },
+    });
+
+    return updatedUser;
   }
 }
