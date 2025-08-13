@@ -10,7 +10,7 @@ export class UserFilesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async saveOrReplace(type: EUSER_FILES_TYPE, fileMeta: IFile, userId: number) {
-    const existing = await this.prisma.userFiles.findFirst({ where: { type } });
+    const existing = await this.prisma.userFiles.findFirst({ where: { type, user_id: userId } });
 
     if (existing) {
       const fullPath = path.join(process.cwd(), existing.path);
