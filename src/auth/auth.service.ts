@@ -20,9 +20,9 @@ export class AuthService {
     @InjectRedis() private readonly redis: Redis
   ) {}
 
-  generateAccessToken(userId: number, email: string) {
+  generateAccessToken(userId: number) {
     const token = this.jwtService.sign(
-      { user_id: userId, email },
+      { user_id: userId },
       {
         secret: this.configService.get('JWT_SECRET'),
         expiresIn: '5m',
@@ -31,23 +31,23 @@ export class AuthService {
     return token;
   }
 
-  async getAccessTokenData(token: string): Promise<{ userId: number; email: string }> {
+  async getAccessTokenData(token: string): Promise<{ userId: number }> {
     try {
       const decoded = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get('JWT_SECRET'),
       });
-      return { userId: decoded.user_id, email: decoded.email };
+      return { userId: decoded.user_id };
     } catch (e: any) {
       return null;
     }
   }
 
-  async getRefreshTokenData(token: string): Promise<{ userId: number; email: string }> {
+  async getRefreshTokenData(token: string): Promise<{ userId: number }> {
     try {
       const decoded = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get('JWT_SECRET'),
       });
-      return { userId: decoded.user_id, email: decoded.email };
+      return { userId: decoded.user_id };
     } catch (e: any) {
       return null;
     }
@@ -97,7 +97,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const accessToken = this.generateAccessToken(user.id, user.email);
+    const accessToken = this.generateAccessToken(user.id);
 
     return accessToken;
   }
@@ -146,7 +146,7 @@ export class AuthService {
     });
 
     const refreshToken = await this.generateRefreshToken(createdUser.id, createdUser.email);
-    const accessToken = this.generateAccessToken(createdUser.id, createdUser.email);
+    const accessToken = this.generateAccessToken(createdUser.id);
 
     return {
       user: createdUser,
@@ -183,7 +183,7 @@ export class AuthService {
       },
     });
 
-    const accessToken = this.generateAccessToken(user.id, user.email);
+    const accessToken = this.generateAccessToken(user.id);
     const now = new Date();
 
     if (savedToken && savedToken.expires_at > now) {
@@ -290,7 +290,6 @@ export class AuthService {
           ? await this.prisma.user.findUnique({
               where: {
                 id: tokenData.userId,
-                email: tokenData.email,
               },
               select: {
                 id: true,
@@ -341,7 +340,6 @@ export class AuthService {
           ? await this.prisma.user.findUnique({
               where: {
                 id: refreshData.userId,
-                email: refreshData.email,
               },
               select: {
                 id: true,
@@ -405,7 +403,7 @@ export class AuthService {
           };
         }
 
-        const accessToken = this.generateAccessToken(user.id, user.email);
+        const accessToken = this.generateAccessToken(user.id);
 
         await this.updateUserSystemData(user.id, userIp);
 
