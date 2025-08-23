@@ -9,7 +9,9 @@ export class SystemTasksController {
   constructor(
     private readonly authService: AuthService,
     private readonly systemTasksService: SystemTasksService
-  ) {}
+  ) {
+    console.log('Controller loaded');
+  }
 
   @Get('all')
   async getAllTasks(@Req() request: Request) {
@@ -25,8 +27,22 @@ export class SystemTasksController {
     return await this.systemTasksService.getAllTasks();
   }
 
+  @Get('generate')
+  async getGptTasks(@Req() request: Request) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return await this.systemTasksService.generateTaskFromGpt();
+  }
+
   @Get(':id')
-  async getLogs(@Req() request: Request, @Param('id') id: string) {
+  async getTaskById(@Req() request: Request, @Param('id') id: string) {
     const user = await this.authService.getUserFromTokens(request);
 
     if (!user.user?.admin) {

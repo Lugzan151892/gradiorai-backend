@@ -1,10 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ETASKS_STATUS } from '@prisma/client';
+import { GptService } from 'src/gpt/gpt.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class SystemTasksService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly gptService: GptService
+  ) {}
 
   async getAllTasks() {
     return this.prismaService.task.findMany();
@@ -63,5 +67,27 @@ export class SystemTasksService {
         status: data.status,
       },
     });
+  }
+
+  async generateTaskFromGpt() {
+    try {
+      console.log('mi v generate');
+
+      const currentTasks = await this.prismaService.task.findMany({
+        where: {
+          status: ETASKS_STATUS.TODO,
+        },
+      });
+
+      console.log('currentTasks', currentTasks);
+
+      const gptGeneratedTasks = await this.gptService.generateGptRecomendations(currentTasks);
+      console.log('gptGeneratedTasks received:', !!gptGeneratedTasks);
+
+      return gptGeneratedTasks;
+    } catch (error) {
+      console.error('Error in generateTaskFromGpt:', error);
+      throw error;
+    }
   }
 }

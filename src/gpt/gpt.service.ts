@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { z } from 'zod';
@@ -36,6 +36,15 @@ const GPTResponse = z.object({
           id: z.number(),
         })
       ),
+    })
+  ),
+});
+
+const GPTAnalyzeResponse = z.object({
+  tasks: z.array(
+    z.object({
+      title: z.string(),
+      content: z.string(),
     })
   ),
 });
@@ -328,5 +337,51 @@ export class GptService {
       result: completion.choices[0].message.content,
       usage: completion.usage,
     };
+  }
+
+  async generateGptRecomendations(tasks: Array<{ title: string; content: string }>) {
+    try {
+      const apiKey = this.configService.get<string>('CHAT_SECRET');
+      const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.GPT_ANALYZE);
+      const openai = new OpenAI({ apiKey: apiKey });
+      const userMessage = `Вот список текущих задач. ${tasks.map((el) => ({ title: el.title, content: el.content }))}`;
+
+      const completion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
+        model: settings.admin_model,
+        store: true,
+        messages: [
+          {
+            role: 'system',
+            content: settings.system_message,
+          },
+          {
+            role: 'user',
+            content: userMessage,
+          },
+        ],
+        response_format: zodResponseFormat(GPTAnalyzeResponse, 'event'),
+        temperature: settings.temperature,
+      });
+
+      const parsedContent = JSON.parse(completion.choices[0].message.content);
+      const result = {
+        response: {
+          tasks: parsedContent.tasks,
+        },
+        usage: completion.usage,
+      };
+
+      return result;
+    } catch (error) {
+      console.error('Error in generateGptRecomendations:', error);
+      throw new HttpException(
+        {
+          message: 'Ошибка при генерации рекомендаций GPT',
+          error: error.message,
+          info: { type: 'gpt_error' },
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 }
