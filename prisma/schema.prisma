@@ -109,6 +109,7 @@ model User {
   files                                 UserFiles[]
   user_actions_log                      UserActionsLog[]
   user_service_transactions             ServiceDevelopmentSpendTransaction[]
+  created_tasks                         Task[]
 }
 
 enum EUSER_FILES_TYPE {
@@ -236,6 +237,11 @@ model UserActionsLog {
   is_admin         Boolean?
 }
 
+enum ETASKS_STATUS {
+  TODO
+  DONE
+}
+
 model ServiceDevelopmentSpendTransaction {
   id                        Int                  @id @default(autoincrement())
   created_at                DateTime             @default(now())
@@ -244,4 +250,15 @@ model ServiceDevelopmentSpendTransaction {
   transaction_maker_id      Int?
   amount                    Float
   reason                    String?              @db.LongText
+}
+
+model Task {
+  id                        String               @id @default(uuid())
+  created_at                DateTime             @default(now())
+  updated_at                DateTime             @updatedAt
+  title                     String?              @db.LongText
+  content                   String?              @db.LongText
+  status                    ETASKS_STATUS        @default(TODO)
+  created_by_id             Int?
+  created_by                User?                @relation(fields: [created_by_id], references: [id])
 }
