@@ -262,3 +262,10 @@ model Task {
   created_by_id             Int?
   created_by                User?                @relation(fields: [created_by_id], references: [id])
 }
+
+model DaylyAdvice {
+  id                        String               @id @default(uuid())
+  created_at                DateTime             @default(now())
+  updated_at                DateTime             @updatedAt
+  advice                    String?              @db.LongText
+}

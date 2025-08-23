@@ -384,4 +384,71 @@ export class GptService {
       );
     }
   }
+
+  async generateGptAdvice() {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const existingAdvice = await this.prismaService.daylyAdvice.findFirst({
+      where: {
+        created_at: {
+          gte: todayStart,
+          lte: todayEnd,
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (existingAdvice) {
+      return {
+        response: {
+          advice: existingAdvice.advice,
+        },
+        usage: null,
+      };
+    }
+
+    const apiKey = this.configService.get<string>('CHAT_SECRET');
+    const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.GPT_DAYLY_ADVICE);
+    const openai = new OpenAI({ apiKey: apiKey });
+
+    const completion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
+      model: settings.admin_model,
+      store: true,
+      messages: [
+        {
+          role: 'system',
+          content: settings.system_message,
+        },
+        {
+          role: 'user',
+          content: settings.user_message,
+        },
+      ],
+      response_format: zodResponseFormat(
+        z.object({
+          advice: z.string(),
+        }),
+        'event'
+      ),
+      temperature: settings.temperature,
+    });
+
+    const parsedContent = JSON.parse(completion.choices[0].message.content);
+    const savedAdvice = await this.prismaService.daylyAdvice.create({
+      data: {
+        advice: parsedContent.advice,
+      },
+    });
+
+    return {
+      response: {
+        advice: savedAdvice.advice,
+      },
+      usage: completion.usage,
+    };
+  }
 }
