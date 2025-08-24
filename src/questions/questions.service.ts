@@ -386,6 +386,7 @@ export class QuestionsService {
       select: {
         question: true,
       },
+      take: 40,
     });
 
     return passedQuestions;
