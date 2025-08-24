@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { z } from 'zod';
@@ -36,6 +36,15 @@ const GPTResponse = z.object({
           id: z.number(),
         })
       ),
+    })
+  ),
+});
+
+const GPTAnalyzeResponse = z.object({
+  tasks: z.array(
+    z.object({
+      title: z.string(),
+      content: z.string(),
     })
   ),
 });
@@ -326,6 +335,119 @@ export class GptService {
 
     return {
       result: completion.choices[0].message.content,
+      usage: completion.usage,
+    };
+  }
+
+  async generateGptRecomendations(tasks: Array<{ title: string; content: string }>) {
+    try {
+      const apiKey = this.configService.get<string>('CHAT_SECRET');
+      const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.GPT_ANALYZE);
+      const openai = new OpenAI({ apiKey: apiKey });
+      const userMessage = `Вот список текущих задач. ${tasks.map((el) => ({ title: el.title, content: el.content }))}`;
+
+      const completion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
+        model: settings.admin_model,
+        store: true,
+        messages: [
+          {
+            role: 'system',
+            content: settings.system_message,
+          },
+          {
+            role: 'user',
+            content: userMessage,
+          },
+        ],
+        response_format: zodResponseFormat(GPTAnalyzeResponse, 'event'),
+        temperature: settings.temperature,
+      });
+
+      const parsedContent = JSON.parse(completion.choices[0].message.content);
+      const result = {
+        response: {
+          tasks: parsedContent.tasks,
+        },
+        usage: completion.usage,
+      };
+
+      return result;
+    } catch (error) {
+      console.error('Error in generateGptRecomendations:', error);
+      throw new HttpException(
+        {
+          message: 'Ошибка при генерации рекомендаций GPT',
+          error: error.message,
+          info: { type: 'gpt_error' },
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async generateGptAdvice() {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const existingAdvice = await this.prismaService.daylyAdvice.findFirst({
+      where: {
+        created_at: {
+          gte: todayStart,
+          lte: todayEnd,
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (existingAdvice) {
+      return {
+        response: {
+          advice: existingAdvice.advice,
+        },
+        usage: null,
+      };
+    }
+
+    const apiKey = this.configService.get<string>('CHAT_SECRET');
+    const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.GPT_DAYLY_ADVICE);
+    const openai = new OpenAI({ apiKey: apiKey });
+
+    const completion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
+      model: settings.admin_model,
+      store: true,
+      messages: [
+        {
+          role: 'system',
+          content: settings.system_message,
+        },
+        {
+          role: 'user',
+          content: settings.user_message,
+        },
+      ],
+      response_format: zodResponseFormat(
+        z.object({
+          advice: z.string(),
+        }),
+        'event'
+      ),
+      temperature: settings.temperature,
+    });
+
+    const parsedContent = JSON.parse(completion.choices[0].message.content);
+    const savedAdvice = await this.prismaService.daylyAdvice.create({
+      data: {
+        advice: parsedContent.advice,
+      },
+    });
+
+    return {
+      response: {
+        advice: savedAdvice.advice,
+      },
       usage: completion.usage,
     };
   }

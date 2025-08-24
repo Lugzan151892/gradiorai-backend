@@ -17,6 +17,7 @@ import { SystemFilesModule } from './system/files/system-files.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { UserFilesModule } from './user/files/user-files.module';
+import { SystemTasksModule } from './system/tasks/system-tasks.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { UserFilesModule } from './user/files/user-files.module';
     InterviewModule,
     SystemFilesModule,
     UserFilesModule,
+    SystemTasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],
