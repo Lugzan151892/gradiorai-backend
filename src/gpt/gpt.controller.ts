@@ -54,8 +54,13 @@ export class GptController {
     //   }
     // }
 
-    const data = await this.gptService.generateQuestions(body, user?.user.id, user?.user.admin, user.userIp);
+    const data = await this.gptService.generateQuestions(body, user?.user?.id, user?.user?.admin, user?.userIp);
 
     return data;
+  }
+
+  @Get('advice')
+  async generateDaylyAdvice() {
+    return await this.gptService.generateGptAdvice();
   }
 }
