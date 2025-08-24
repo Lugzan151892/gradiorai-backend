@@ -58,4 +58,9 @@ export class GptController {
 
     return data;
   }
+
+  @Get('advice')
+  async generateDaylyAdvice() {
+    return await this.gptService.generateGptAdvice();
+  }
 }
