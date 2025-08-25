@@ -53,9 +53,9 @@ export class AuthService {
     }
   }
 
-  async generateRefreshToken(userId: number, email: string) {
+  async generateRefreshToken(userId: number) {
     const token = this.jwtService.sign(
-      { user_id: userId, email },
+      { user_id: userId },
       {
         secret: this.configService.get('JWT_SECRET'),
         expiresIn: '30d',
