@@ -344,7 +344,7 @@ export class GptService {
       const apiKey = this.configService.get<string>('CHAT_SECRET');
       const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.GPT_ANALYZE);
       const openai = new OpenAI({ apiKey: apiKey });
-      const userMessage = `Вот список текущих задач. ${tasks.map((el) => ({ title: el.title, content: el.content }))}`;
+      const userMessage = `Вот список текущих задач. ${tasks.map((el) => `Название задачи: ${el.title}, описание задачи: ${el.content}`).join('; ')}`;
 
       const completion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
         model: settings.admin_model,
