@@ -145,7 +145,7 @@ export class AuthService {
       },
     });
 
-    const refreshToken = await this.generateRefreshToken(createdUser.id, createdUser.email);
+    const refreshToken = await this.generateRefreshToken(createdUser.id);
     const accessToken = this.generateAccessToken(createdUser.id);
 
     return {
@@ -194,7 +194,7 @@ export class AuthService {
           where: { user_id: user.id },
         });
       }
-      refreshToken = await this.generateRefreshToken(user.id, user.email);
+      refreshToken = await this.generateRefreshToken(user.id);
     }
 
     return {
