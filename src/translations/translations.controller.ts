@@ -1,15 +1,33 @@
-import { Controller, Get, Post, Patch, Body, Query, Param, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { AuthService } from 'src/auth/auth.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Query,
+  Param,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+  Req,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { TranslationsService } from './translations.service';
 import { UpdateTranslationDto } from './dto/update-translation.dto';
 import { ImportQueryDto } from './dto/import-translation.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Request } from 'express';
 
 @Controller('translations')
 export class TranslationsController {
-  constructor(private svc: TranslationsService) {}
+  constructor(
+    private svc: TranslationsService,
+    private authService: AuthService
+  ) {}
 
-  // экспорт (скачивание). open для админов — требовать авторизацию в проде
   @Get('export')
   async export(@Query('locale') locale: string | undefined, @Res() res: Response) {
     const data = await this.svc.exportTranslations(locale);
@@ -25,28 +43,42 @@ export class TranslationsController {
   async import(
     @Body() body: any,
     @UploadedFile() file: Express.Multer.File | undefined,
-    @Query('overwrite') overwriteStr: string | undefined
+    @Query('overwrite') overwriteStr: string | undefined,
+    @Req() request: Request
   ) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
     const overwrite = overwriteStr === 'true';
     const json = file ? JSON.parse(file.buffer.toString()) : body;
     await this.svc.importTranslations(json, overwrite);
     return { success: true };
   }
 
-  // апдейт одной строки
   @Patch('update')
-  async update(@Body() dto: UpdateTranslationDto) {
-    console.log(dto);
+  async update(@Body() dto: UpdateTranslationDto, @Req() request: Request) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
     return this.svc.upsertTranslation(dto);
   }
 
-  // получить namespace (locale + namespace)
   @Get(':locale/:namespace')
   async getNamespace(@Param('locale') locale: string, @Param('namespace') namespace: string) {
     return this.svc.getNamespace(locale, namespace);
   }
 
-  // получить конкретный ключ
   @Get(':locale/:namespace/:key')
   async getKey(@Param('locale') locale: string, @Param('namespace') namespace: string, @Param('key') key: string) {
     const value = await this.svc.getKey(locale, namespace, key);
