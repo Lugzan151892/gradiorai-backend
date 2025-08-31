@@ -269,3 +269,17 @@ model DaylyAdvice {
   updated_at                DateTime             @updatedAt
   advice                    String?              @db.LongText
 }
+
+model Translation {
+  id                        Int                  @id @default(autoincrement())
+  locale                    String
+  namespace                 String
+  key                       String
+  value                     String               @db.LongText
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+
+  @@unique([locale, namespace, key], name: "locale_namespace_key")
+  @@index([namespace])
+  @@index([locale])
+}
