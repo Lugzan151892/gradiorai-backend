@@ -402,10 +402,12 @@ export class GptService {
       orderBy: { created_at: 'desc' },
     });
 
-    if (existingAdvice) {
+    if (existingAdvice && (existingAdvice.advice_ru || existingAdvice.advice_en)) {
       return {
         response: {
           advice: existingAdvice.advice,
+          advice_ru: existingAdvice.advice_ru,
+          advice_en: existingAdvice.advice_en,
         },
         usage: null,
       };
@@ -421,7 +423,7 @@ export class GptService {
       messages: [
         {
           role: 'system',
-          content: settings.system_message,
+          content: `${settings.system_message} В ответе есть поля с локализацией, они должны быть заполнены. Нужно сгенерировать один совет, но перевести его для каждого поля, указанного в формате ответа.`,
         },
         {
           role: 'user',
@@ -430,7 +432,8 @@ export class GptService {
       ],
       response_format: zodResponseFormat(
         z.object({
-          advice: z.string(),
+          advice_ru: z.string(),
+          advice_en: z.string(),
         }),
         'event'
       ),
@@ -440,7 +443,8 @@ export class GptService {
     const parsedContent = JSON.parse(completion.choices[0].message.content);
     const savedAdvice = await this.prismaService.daylyAdvice.create({
       data: {
-        advice: parsedContent.advice,
+        advice_en: parsedContent.advice_en,
+        advice_ru: parsedContent.advice_ru,
       },
     });
 
