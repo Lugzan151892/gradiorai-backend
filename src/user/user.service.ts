@@ -48,6 +48,7 @@ export class UserService {
         updated_at: true,
         last_ip: true,
         last_login: true,
+        isGoogle: true,
         ip_log: {
           take: 3,
           orderBy: {
