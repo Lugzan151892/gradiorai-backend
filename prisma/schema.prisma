@@ -94,6 +94,7 @@ model User {
   email                                 String                 @unique
   password                              String
   isGoogle                              Boolean?               @default(false)
+  is_password_created                   Boolean?               @default(false)
   created_at                            DateTime               @default(now())
   updated_at                            DateTime               @updatedAt
   admin                                 Boolean                @default(false)
@@ -269,6 +270,8 @@ model DaylyAdvice {
   created_at                DateTime             @default(now())
   updated_at                DateTime             @updatedAt
   advice                    String?              @db.LongText
+  advice_ru                 String?              @db.LongText
+  advice_en                 String?              @db.LongText
 }
 
 model Translation {

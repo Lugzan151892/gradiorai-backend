@@ -17,15 +17,16 @@ import {
 import { Response } from 'express';
 import { TranslationsService } from './translations.service';
 import { UpdateTranslationDto } from './dto/update-translation.dto';
-import { ImportQueryDto } from './dto/import-translation.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('translations')
 export class TranslationsController {
   constructor(
     private svc: TranslationsService,
-    private authService: AuthService
+    private authService: AuthService,
+    private configService: ConfigService
   ) {}
 
   @Get('export')
@@ -65,7 +66,7 @@ export class TranslationsController {
   async update(@Body() dto: UpdateTranslationDto, @Req() request: Request) {
     const user = await this.authService.getUserFromTokens(request);
 
-    if (!user.user?.admin) {
+    if (!user.user?.admin && (!dto.password || dto.password !== this.configService.get('TRANSLATION_PASSWORD'))) {
       throw new HttpException(
         { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
         HttpStatus.BAD_REQUEST

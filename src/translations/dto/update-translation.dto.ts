@@ -5,4 +5,5 @@ export class UpdateTranslationDto {
   @IsString() namespace: string;
   @IsString() key: string;
   @IsString() value: string;
+  @IsString() password?: string;
 }

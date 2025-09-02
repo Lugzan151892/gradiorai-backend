@@ -306,6 +306,8 @@ export class AuthService {
                   },
                 },
                 admin: true,
+                isGoogle: true,
+                is_password_created: true,
                 files: {
                   select: {
                     id: true,
@@ -356,6 +358,8 @@ export class AuthService {
                   },
                 },
                 admin: true,
+                isGoogle: true,
+                is_password_created: true,
                 files: {
                   select: {
                     id: true,
