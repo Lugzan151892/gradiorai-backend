@@ -93,6 +93,8 @@ model User {
   id                                    Int                    @id @default(autoincrement())
   email                                 String                 @unique
   password                              String
+  isGoogle                              Boolean?               @default(false)
+  is_password_created                   Boolean?               @default(false)
   created_at                            DateTime               @default(now())
   updated_at                            DateTime               @updatedAt
   admin                                 Boolean                @default(false)
@@ -268,4 +270,20 @@ model DaylyAdvice {
   created_at                DateTime             @default(now())
   updated_at                DateTime             @updatedAt
   advice                    String?              @db.LongText
+  advice_ru                 String?              @db.LongText
+  advice_en                 String?              @db.LongText
+}
+
+model Translation {
+  id                        Int                  @id @default(autoincrement())
+  locale                    String
+  namespace                 String
+  key                       String
+  value                     String               @db.LongText
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+
+  @@unique([locale, namespace, key], name: "locale_namespace_key")
+  @@index([namespace])
+  @@index([locale])
 }

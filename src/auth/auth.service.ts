@@ -306,6 +306,8 @@ export class AuthService {
                   },
                 },
                 admin: true,
+                isGoogle: true,
+                is_password_created: true,
                 files: {
                   select: {
                     id: true,
@@ -356,6 +358,8 @@ export class AuthService {
                   },
                 },
                 admin: true,
+                isGoogle: true,
+                is_password_created: true,
                 files: {
                   select: {
                     id: true,
@@ -566,5 +570,49 @@ export class AuthService {
       subject: 'Verification Code',
       text: `Your verification code is: ${code}`,
     });
+  }
+
+  async googleLogin(googleUser: { provider: string; providerId: string; email: string; username: string }) {
+    if (!googleUser.email) {
+      throw new HttpException('Google account has no email!', HttpStatus.BAD_REQUEST);
+    }
+
+    let user = await this.prisma.user.findUnique({
+      where: { email: googleUser.email },
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email: googleUser.email,
+          username: googleUser.username,
+          password: '',
+          isGoogle: true,
+        },
+      });
+    }
+
+    const accessToken = this.generateAccessToken(user.id);
+    let refreshToken: string;
+
+    const savedToken = await this.prisma.refreshToken.findUnique({
+      where: { user_id: user.id },
+    });
+
+    const now = new Date();
+    if (savedToken && savedToken.expires_at > now) {
+      refreshToken = savedToken.token;
+    } else {
+      if (savedToken) {
+        await this.prisma.refreshToken.delete({ where: { user_id: user.id } });
+      }
+      refreshToken = await this.generateRefreshToken(user.id);
+    }
+
+    return {
+      user,
+      accessToken,
+      refreshToken,
+    };
   }
 }
