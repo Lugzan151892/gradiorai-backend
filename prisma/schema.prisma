@@ -317,3 +317,11 @@ model UserRatingLog {
   updated_at DateTime          @updatedAt
   comment    String?
 }
+
+model FakeUser {
+  id                        String               @id @default(uuid())
+  created_at                DateTime             @default(now())
+  updated_at                DateTime             @updatedAt
+  name                      String
+  total_rating              Int                  @default(2000)
+}

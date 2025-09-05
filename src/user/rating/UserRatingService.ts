@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { EUSER_ACTION_TYPE, EUSER_FILES_TYPE } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -151,5 +151,48 @@ export class UserRatingService {
     });
 
     return users;
+  }
+
+  async getFakeUser(id: string) {
+    return await this.prisma.fakeUser.findUnique({ where: { id } });
+  }
+
+  async getFakeUsers() {
+    return await this.prisma.fakeUser.findMany();
+  }
+
+  async createFakeUser(name: string, total_rating: number) {
+    const existingUser = await this.prisma.fakeUser.findFirst({ where: { name } });
+    if (existingUser) {
+      throw new HttpException('User already exists', HttpStatus.BAD_REQUEST);
+    }
+
+    return await this.prisma.fakeUser.create({
+      data: {
+        name,
+        total_rating,
+      },
+    });
+  }
+
+  async editFakeUser(id: string, name?: string, total_rating?: number) {
+    const existingUser = await this.prisma.fakeUser.findUnique({ where: { id } });
+    if (!existingUser) {
+      throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
+    }
+
+    return await this.prisma.fakeUser.update({
+      where: { id },
+      data: { name, total_rating },
+    });
+  }
+
+  async deleteFakeUser(id: string) {
+    const existingUser = await this.prisma.fakeUser.findUnique({ where: { id } });
+    if (!existingUser) {
+      throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
+    }
+
+    return await this.prisma.fakeUser.delete({ where: { id } });
   }
 }
