@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EUSER_ACTION_TYPE } from '@prisma/client';
+import { EUSER_ACTION_TYPE, EUSER_FILES_TYPE } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -121,5 +121,35 @@ export class UserRatingService {
       delta,
       `Test: level=${level}, q=${questions}, correct=${correct}`
     );
+  }
+
+  async getUsersRating() {
+    const users = await this.prisma.userRating.findMany({
+      orderBy: { total_rating: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        tests_rating: true,
+        interviews_rating: true,
+        total_rating: true,
+        last_activity: true,
+        updated_at: true,
+        created_at: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            files: {
+              where: {
+                type: EUSER_FILES_TYPE.AVATAR,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return users;
   }
 }

@@ -299,6 +299,7 @@ model UserRating {
   total_rating     Int      @default(2000)
   last_activity    DateTime @default(now())
   updated_at       DateTime @updatedAt
+  created_at       DateTime @default(now())
 }
 
 model UserRatingLog {

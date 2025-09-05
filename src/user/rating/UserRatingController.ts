@@ -1,6 +1,6 @@
 import { AuthService } from 'src/auth/auth.service';
 import { UserRatingService } from './UserRatingService';
-import { Controller, HttpException, HttpStatus, Body, Post } from '@nestjs/common';
+import { Controller, HttpException, HttpStatus, Body, Post, Get } from '@nestjs/common';
 import { Req } from '@nestjs/common';
 import { Request } from 'express';
 
@@ -23,6 +23,15 @@ export class UserRatingController {
 
     return {
       data: result,
+    };
+  }
+
+  @Get('get-users-rating')
+  async getUsersRating() {
+    const users = await this.userRatingService.getUsersRating();
+
+    return {
+      data: users,
     };
   }
 }
