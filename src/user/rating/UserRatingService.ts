@@ -1,35 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { EUSER_ACTION_TYPE } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
-export class RatingService {
+export class UserRatingService {
   private readonly MIN_RATING = 1000;
   private readonly MAX_RATING = 3000;
 
   constructor(private prisma: PrismaService) {}
 
-  // коэффициент "замедления" прироста
+  /** коэффициент "замедления" прироста */
   private getK(current: number) {
     return Math.max(0, 1 - (current - this.MIN_RATING) / (this.MAX_RATING - this.MIN_RATING));
   }
 
-  // коэффициент активности (чтобы нельзя было качать только тесты или только собесы)
-  private async getActivityFactor(userId: number): Promise<number> {
-    const last7days = new Date();
-    last7days.setDate(last7days.getDate() - 7);
+  /** коэффициент замедления для рейтинга выше потолка */
+  private getOverflowK(current: number) {
+    if (current <= this.MAX_RATING) return 1;
 
-    const [tests, interviews] = await Promise.all([
-      this.prisma.userActionsLog.count({
-        where: { user_id: userId, type: EUSER_ACTION_TYPE.TEST, createdAt: { gte: last7days } },
-      }),
-      this.prisma.userActionsLog.count({
-        where: { user_id: userId, type: EUSER_ACTION_TYPE.INTERVIEW, createdAt: { gte: last7days } },
-      }),
-    ]);
+    // Чем больше превышение, тем сильнее замедление
+    const overflow = current - this.MAX_RATING;
+    const maxOverflow = 1000; // максимальное превышение для расчета
+    const overflowRatio = Math.min(overflow / maxOverflow, 1);
 
-    if (tests === 0 || interviews === 0) return 0.7;
-    return Math.min(1, 0.5 + (0.5 * Math.min(tests, interviews)) / Math.max(tests, interviews));
+    // Коэффициент от 0.1 до 0.01 (очень медленный рост)
+    return Math.max(0.01, 0.1 * (1 - overflowRatio));
   }
 
   private async updateUserRating(userId: number, source: EUSER_ACTION_TYPE, delta: number, comment: string) {
@@ -86,14 +81,16 @@ export class RatingService {
     let bonus = success ? 50 : -50;
     let gain = base + bonus;
 
-    const K = this.getK(current);
-    const A = await this.getActivityFactor(userId);
+    let delta: number;
 
-    let delta = Math.round(gain * K * A);
-
-    // если перевалил потолок
     if (current >= this.MAX_RATING) {
-      delta = success && score === 10 ? 3 : -30;
+      // Если перевалил потолок, используем коэффициент замедления
+      const overflowK = this.getOverflowK(current);
+      delta = Math.round(gain * overflowK);
+    } else {
+      // Обычный расчет с замедлением по мере приближения к потолку
+      const K = this.getK(current);
+      delta = Math.round(gain * K);
     }
 
     await this.updateUserRating(userId, EUSER_ACTION_TYPE.INTERVIEW, delta, `Interview: score=${score}, success=${success}`);
@@ -106,13 +103,16 @@ export class RatingService {
     const percent = correct / questions;
     let base = percent * 100 * level * (questions / 10);
 
-    const K = this.getK(current);
-    const A = await this.getActivityFactor(userId);
-
-    let delta = Math.round(base * K * A);
+    let delta: number;
 
     if (current >= this.MAX_RATING) {
-      delta = percent === 1 ? 3 : -30;
+      // Если перевалил потолок, используем коэффициент замедления
+      const overflowK = this.getOverflowK(current);
+      delta = Math.round(base * overflowK);
+    } else {
+      // Обычный расчет с замедлением по мере приближения к потолку
+      const K = this.getK(current);
+      delta = Math.round(base * K);
     }
 
     await this.updateUserRating(
