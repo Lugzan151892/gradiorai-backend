@@ -322,6 +322,15 @@ export class AuthService {
                     updatedAt: true,
                   },
                 },
+                user_rating: {
+                  select: {
+                    id: true,
+                    tests_rating: true,
+                    interviews_rating: true,
+                    total_rating: true,
+                    last_activity: true,
+                  },
+                },
               },
             })
           : null;
