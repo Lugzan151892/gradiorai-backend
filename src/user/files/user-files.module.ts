@@ -9,5 +9,6 @@ import { AuthModule } from 'src/auth/auth.module';
   imports: [PrismaModule, FileModule, AuthModule],
   providers: [UserFilesService],
   controllers: [UserFilesController],
+  exports: [UserFilesService],
 })
 export class UserFilesModule {}
