@@ -217,7 +217,7 @@ export class AuthService {
       );
     }
 
-    const passwordsMatch = await bcrypt.compare(password, user.password);
+    const passwordsMatch = (user.isGoogle && !user.is_password_created) || (await bcrypt.compare(password, user.password));
 
     if (!passwordsMatch) {
       throw new HttpException({ message: 'Неверный пароль', info: { type: 'password' } }, HttpStatus.BAD_REQUEST);
@@ -544,6 +544,7 @@ export class AuthService {
       },
       data: {
         password: hashedPassword,
+        is_password_created: true,
       },
     });
 
