@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IFile } from '../utils/interfaces/files';
 import { parsePeriodToDate } from 'src/utils/date';
+import { UserRatingService } from 'src/user/rating/UserRatingService';
 
 interface IInterviewFile extends IFile {
   inside_type: 'cv' | 'vac';
@@ -9,7 +10,10 @@ interface IInterviewFile extends IFile {
 
 @Injectable()
 export class InterviewService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly userRatingService: UserRatingService
+  ) {}
 
   async getInterviewById(interviewId: string) {
     const result = await this.prismaService.interview.findUnique({
@@ -158,6 +162,12 @@ export class InterviewService {
         files: true,
       },
     });
+
+    await this.userRatingService.addInterviewResult(
+      updatedInterview.user_id,
+      Number(result.score.split('/')[0]),
+      result.success === 'true'
+    );
 
     return updatedInterview;
   }

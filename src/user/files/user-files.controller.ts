@@ -131,4 +131,23 @@ export class UserFilesController {
 
     return res.sendFile(filePath);
   }
+
+  @Get('/view/:id/avatar')
+  async viewUserAvatar(@Param('id') id: string, @Res() res: Response) {
+    const file = await this.userFilesService.findByKey(EUSER_FILES_TYPE.AVATAR, Number(id));
+
+    if (!file) {
+      throw new NotFoundException('Файл не найден');
+    }
+
+    const filePath = path.join(process.cwd(), file.path);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Файл на диске не найден');
+    }
+
+    res.setHeader('Cache-Control', 'private, max-age=604800');
+
+    return res.sendFile(filePath);
+  }
 }
