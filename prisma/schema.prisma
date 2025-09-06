@@ -112,6 +112,8 @@ model User {
   user_actions_log                      UserActionsLog[]
   user_service_transactions             ServiceDevelopmentSpendTransaction[]
   created_tasks                         Task[]
+  user_rating                           UserRating?
+  user_rating_log                       UserRatingLog[]
 }
 
 enum EUSER_FILES_TYPE {
@@ -286,4 +288,40 @@ model Translation {
   @@unique([locale, namespace, key], name: "locale_namespace_key")
   @@index([namespace])
   @@index([locale])
+}
+
+model UserRating {
+  id               Int      @id @default(autoincrement())
+  user_id          Int      @unique
+  user             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  tests_rating     Int      @default(1000)
+  interviews_rating Int     @default(1000)
+  total_rating     Int      @default(2000)
+  last_activity    DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  created_at       DateTime @default(now())
+}
+
+model UserRatingLog {
+  id         Int               @id @default(autoincrement())
+  user_id    Int
+  user       User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  source     EUSER_ACTION_TYPE
+  /** изменение рейтинга */
+  delta      Int
+  /** рейтинг до изменения (по инструменту) */
+  old_value  Int
+  /** рейтинг после изменения (по инструменту) */
+  new_value  Int
+  created_at DateTime          @default(now())
+  updated_at DateTime          @updatedAt
+  comment    String?
+}
+
+model FakeUser {
+  id                        String               @id @default(uuid())
+  created_at                DateTime             @default(now())
+  updated_at                DateTime             @updatedAt
+  name                      String
+  total_rating              Int                  @default(2000)
 }

@@ -16,7 +16,6 @@ import { InterviewModule } from './interview/interview.module';
 import { SystemFilesModule } from './system/files/system-files.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { UserFilesModule } from './user/files/user-files.module';
 import { SystemTasksModule } from './system/tasks/system-tasks.module';
 import { TranslationsModule } from './translations/translations.module';
 
@@ -44,7 +43,6 @@ import { TranslationsModule } from './translations/translations.module';
     UserModule,
     InterviewModule,
     SystemFilesModule,
-    UserFilesModule,
     SystemTasksModule,
     TranslationsModule,
   ],
