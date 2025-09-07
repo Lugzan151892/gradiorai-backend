@@ -1,4 +1,17 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Put, Query, Req, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from './user.service';
@@ -100,5 +113,19 @@ export class UserController {
     const interviews = await this.interviewService.getAllUserInterviews(user.user.id, query.period);
 
     return interviews;
+  }
+
+  @Delete('user/:id')
+  async deleteUser(@Req() request: Request, @Param('id') id: string) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user || !user.user.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return await this.userService.deleteUser(Number(id));
   }
 }
