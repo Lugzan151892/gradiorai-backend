@@ -134,6 +134,10 @@ export class UserFilesController {
 
   @Get('/view/:id/avatar')
   async viewUserAvatar(@Param('id') id: string, @Res() res: Response) {
+    if (!id || isNaN(Number(id))) {
+      throw new HttpException({ message: 'ID не найден.', info: { type: 'file' } }, HttpStatus.BAD_REQUEST);
+    }
+
     const file = await this.userFilesService.findByKey(EUSER_FILES_TYPE.AVATAR, Number(id));
 
     if (!file) {

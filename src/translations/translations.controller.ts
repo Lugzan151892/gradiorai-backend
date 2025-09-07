@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Query,
   Param,
@@ -14,11 +15,10 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { TranslationsService } from './translations.service';
 import { UpdateTranslationDto } from './dto/update-translation.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 
 @Controller('translations')
@@ -84,5 +84,23 @@ export class TranslationsController {
   async getKey(@Param('locale') locale: string, @Param('namespace') namespace: string, @Param('key') key: string) {
     const value = await this.svc.getKey(locale, namespace, key);
     return { value };
+  }
+
+  @Delete(':locale/:namespace/:key')
+  async deleteKey(
+    @Param('locale') locale: string,
+    @Param('namespace') namespace: string,
+    @Param('key') key: string,
+    @Req() request: Request
+  ) {
+    const user = await this.authService.getUserFromTokens(request);
+
+    if (!user.user?.admin) {
+      throw new HttpException(
+        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+    return this.svc.deleteKey(locale, namespace, key);
   }
 }
