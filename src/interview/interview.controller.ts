@@ -135,7 +135,7 @@ export class InterviewController {
       );
     }
 
-    this.gptService.handleMessage(interview, user.user?.admin);
+    await this.gptService.handleMessage(interview, user.user?.admin);
 
     return { status: 'ok' };
   }
