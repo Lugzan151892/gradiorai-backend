@@ -450,7 +450,8 @@ export class GptService {
 
     return {
       response: {
-        advice: savedAdvice.advice,
+        advice_ru: savedAdvice.advice_ru,
+        advice_en: savedAdvice.advice_en,
       },
       usage: completion.usage,
     };
