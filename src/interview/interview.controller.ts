@@ -155,24 +155,6 @@ export class InterviewController {
       isAdmin: user.user?.admin,
     });
 
-    /** Скрываем сохранение файлов. */
-    // const savedFiles = await this.fileService.moveFilesToStorage(
-    //   [userCvFile, ...(userVacFile ? [userVacFile] : [])],
-    //   user.user.id,
-    //   'interview',
-    //   newInterview.id,
-    //   false
-    // );
-
-    // const updatedInterview = await this.interviewService.updateInterviewFiles(
-    //   savedFiles.map((file, index) => ({
-    //     ...file,
-    //     inside_type: !index ? 'cv' : 'vac',
-    //   })),
-    //   newInterview.id,
-    //   user.user.id
-    // );
-
     return newInterview;
   }
 
