@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class UserService {
@@ -124,7 +124,7 @@ export class UserService {
       where: { username },
     });
 
-    if (!user) {
+    if (existing) {
       throw new HttpException(
         { message: `Пользователь с именем ${username} уже существует.`, info: { type: 'user' } },
         HttpStatus.BAD_REQUEST

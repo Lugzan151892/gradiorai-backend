@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { GptService } from './gpt.service';
+import { GptService } from '@/gpt/gpt.service';
 import Redis from 'ioredis';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import { Public, OptionalAuth } from '../auth/decorators/auth.decorator';
-import { User, AuthUser } from '../auth/decorators/user.decorator';
+import { Public, OptionalAuth } from '@/auth/decorators/auth.decorator';
+import { User, AuthUser } from '@/auth/decorators/user.decorator';
 
 const REDIS_TTL = 60 * 60 * 24 * 3;
 const generateKey = 'gpt-generate-limit';

@@ -2,27 +2,16 @@ import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Query, R
 import * as fs from 'fs';
 import * as path from 'path';
 import { Response, Request } from 'express';
-import { AuthService } from '../auth/auth.service';
-import { GptService, IGptSettings } from '../gpt/gpt.service';
-import { EGPT_SETTINGS_TYPE } from 'src/utils/interfaces/gpt/interfaces';
+import { GptService, IGptSettings } from '@/gpt/gpt.service';
+import { EGPT_SETTINGS_TYPE } from '@/utils/interfaces/gpt/interfaces';
+import { RequireAdmin } from '@/auth/decorators/auth.decorator';
 
 @Controller('system')
 export class SystemController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly gptService: GptService
-  ) {}
+  constructor(private readonly gptService: GptService) {}
   @Get('logs')
-  async getLogs(@Res() res: Response, @Req() request: Request) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async getLogs(@Res() res: Response) {
     const logFilePath = path.join(__dirname, '..', '..', 'logs', 'combined.log');
 
     if (fs.existsSync(logFilePath)) {
@@ -41,16 +30,8 @@ export class SystemController {
   }
 
   @Get('gpt-settings')
-  async getGptSettings(@Req() request: Request, @Query() query: { type?: EGPT_SETTINGS_TYPE }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async getGptSettings(@Query() query: { type?: EGPT_SETTINGS_TYPE }) {
     if (!query.type || !EGPT_SETTINGS_TYPE[query.type]) {
       throw new HttpException(
         { message: 'Некорректно указан тип настроек EGPT_SETTINGS_TYPE', info: { type: 'admin' } },
@@ -64,23 +45,14 @@ export class SystemController {
   }
 
   @Post('update-gpt-settings')
+  @RequireAdmin()
   async updateQuestionProgress(
-    @Req() request: Request,
     @Body()
     body: {
       settings: IGptSettings;
       type: EGPT_SETTINGS_TYPE;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
     if (!body.type || !EGPT_SETTINGS_TYPE[body.type]) {
       throw new HttpException(
         { message: 'Не указан тип настроек EGPT_SETTINGS_TYPE', info: { type: 'admin' } },
@@ -94,16 +66,8 @@ export class SystemController {
   }
 
   @Get('backups')
+  @RequireAdmin()
   async getBackupFiles(@Res() res: Response, @Req() request: Request) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
     const backupDirPath = path.join(__dirname, '..', '..', 'db-backups');
 
     const files = fs
@@ -120,15 +84,8 @@ export class SystemController {
   }
 
   @Get('/backups/download/:name')
+  @RequireAdmin()
   async downloadBackupFile(@Param('name') name: string, @Req() request: Request, @Res() res: Response) {
-    const user = await this.authService.getUserFromTokens(request);
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
     if (name.includes('..') || name.includes('/')) {
       throw new HttpException('Некорректное имя файла', HttpStatus.BAD_REQUEST);
     }

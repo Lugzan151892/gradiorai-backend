@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -7,7 +7,7 @@ import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Request } from 'express';
-import { getIpFromRequest } from 'src/utils/request';
+import { getIpFromRequest } from '@/utils/request';
 
 const REDIS_TTL = 60 * 60 * 24 * 3;
 

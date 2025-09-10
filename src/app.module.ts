@@ -1,25 +1,25 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { GptModule } from './gpt/gpt.module';
+import { AppController } from '@/app.controller';
+import { AppService } from '@/app.service';
+import { GptModule } from '@/gpt/gpt.module';
 import { ConfigModule } from '@nestjs/config';
-import { AuthModule } from './auth/auth.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { QuestionsModule } from './questions/questions.module';
-import { SystemModule } from './system/system.module';
-import { IpLoggerMiddleware } from './middleware/ip-logger.middleware';
+import { AuthModule } from '@/auth/auth.module';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { QuestionsModule } from '@/questions/questions.module';
+import { SystemModule } from '@/system/system.module';
+import { IpLoggerMiddleware } from '@/middleware/ip-logger.middleware';
 import { WinstonModule } from 'nest-winston';
-import { winstonConfig } from './config/winston/winston.config';
+import { winstonConfig } from '@/config/winston/winston.config';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { UserModule } from './user/user.module';
-import { InterviewModule } from './interview/interview.module';
-import { SystemFilesModule } from './system/files/system-files.module';
+import { UserModule } from '@/user/user.module';
+import { InterviewModule } from '@/interview/interview.module';
+import { SystemFilesModule } from '@/system/files/system-files.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { SystemTasksModule } from './system/tasks/system-tasks.module';
-import { TranslationsModule } from './translations/translations.module';
+import { SystemTasksModule } from '@/system/tasks/system-tasks.module';
+import { TranslationsModule } from '@/translations/translations.module';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard } from './auth/guards/auth.guard';
+import { AuthGuard } from '@/auth/guards/auth.guard';
 
 @Module({
   imports: [

@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import { AuthMode, AUTH_MODE_KEY } from 'src/auth/guards/auth.guard';
+import { AuthMode, AUTH_MODE_KEY } from '@/auth/guards/auth.guard';
 
 /**
  * Декоратор для настройки режима авторизации

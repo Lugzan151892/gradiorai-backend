@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthService } from '../auth.service';
+import { AuthService } from '@/auth/auth.service';
 import { Request } from 'express';
 
 export enum AuthMode {

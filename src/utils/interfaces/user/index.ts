@@ -1,4 +1,4 @@
-import { EUSER_ACTION_TYPE } from '../enums';
+import { EUSER_ACTION_TYPE } from '@/utils/interfaces/enums';
 
 export interface IActionsLogData {
   type: EUSER_ACTION_TYPE;

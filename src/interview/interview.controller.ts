@@ -12,16 +12,16 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { GptService } from '../gpt/gpt.service';
-import { IGPTStreamMessageEvent } from '../utils/interfaces/gpt/interfaces';
-import { InterviewService } from '../interview/interview.service';
+import { GptService } from '@/gpt/gpt.service';
+import { IGPTStreamMessageEvent } from '@/utils/interfaces/gpt/interfaces';
+import { InterviewService } from '@/interview/interview.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
-import { FileService } from '../services/files/file.service';
-import { createTempMulterStorage } from '../services/files/custom-storage.service';
-import { ActionsLogService } from 'src/user/actions-log/actions-log.service';
-import { EUSER_ACTION_TYPE } from 'src/utils/interfaces/enums';
-import { RequireAuth, RequireAdmin, Public, OptionalAuth } from '../auth/decorators/auth.decorator';
-import { User, AuthUser } from '../auth/decorators/user.decorator';
+import { FileService } from '@/services/files/file.service';
+import { createTempMulterStorage } from '@/services/files/custom-storage.service';
+import { ActionsLogService } from '@/user/actions-log/actions-log.service';
+import { EUSER_ACTION_TYPE } from '@/utils/interfaces/enums';
+import { RequireAuth, RequireAdmin, Public, OptionalAuth } from '@/auth/decorators/auth.decorator';
+import { User, AuthUser } from '@/auth/decorators/user.decorator';
 
 @Controller('interview')
 export class InterviewController {

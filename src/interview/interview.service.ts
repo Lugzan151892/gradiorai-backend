@@ -1,8 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { IFile } from '../utils/interfaces/files';
-import { parsePeriodToDate } from 'src/utils/date';
-import { UserRatingService } from 'src/user/rating/UserRatingService';
+import { PrismaService } from '@/prisma/prisma.service';
+import { IFile } from '@/utils/interfaces/files';
+import { parsePeriodToDate } from '@/utils/date';
+import { UserRatingService } from '@/user/rating/UserRatingService';
 
 interface IInterviewFile extends IFile {
   inside_type: 'cv' | 'vac';

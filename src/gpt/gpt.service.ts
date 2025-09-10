@@ -3,15 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
-import { getSkillLevel, replacePromptKeywords, getDefaultGptSettings } from './utils';
-import { ESKILL_LEVEL, EUSER_ACTION_TYPE } from '../utils/interfaces/enums';
-import { QuestionsService } from '../questions/questions.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { getSkillLevel, replacePromptKeywords, getDefaultGptSettings } from '@/gpt/utils';
+import { ESKILL_LEVEL, EUSER_ACTION_TYPE } from '@/utils/interfaces/enums';
+import { QuestionsService } from '@/questions/questions.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { Observable, Subject } from 'rxjs';
 import { Stream } from 'openai/streaming';
-import { EGPT_SETTINGS_TYPE, IGPTStreamMessageEvent, IInterview } from '../utils/interfaces/gpt/interfaces';
-import { InterviewService } from '../interview/interview.service';
-import { ActionsLogService } from 'src/user/actions-log/actions-log.service';
+import { EGPT_SETTINGS_TYPE, IGPTStreamMessageEvent, IInterview } from '@/utils/interfaces/gpt/interfaces';
+import { InterviewService } from '@/interview/interview.service';
+import { ActionsLogService } from '@/user/actions-log/actions-log.service';
 
 export interface IGptSettings {
   id?: number;

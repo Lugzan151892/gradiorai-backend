@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { IActionsLogData } from 'src/utils/interfaces/user';
+import { PrismaService } from '@/prisma/prisma.service';
+import { IActionsLogData } from '@/utils/interfaces/user';
 
 @Injectable()
 export class ActionsLogService {

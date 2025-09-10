@@ -1,100 +1,53 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put, Req, Res } from '@nestjs/common';
-import { AuthService } from 'src/auth/auth.service';
-import { Request } from 'express';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { SystemTasksService } from 'src/system/tasks/system-tasks-service';
 import { ETASKS_STATUS } from '@prisma/client';
+import { AuthUser, User } from '@/auth/decorators/user.decorator';
+import { RequireAdmin } from '@/auth/decorators/auth.decorator';
 
 @Controller('system/tasks')
 export class SystemTasksController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly systemTasksService: SystemTasksService
-  ) {
-    console.log('Controller loaded');
-  }
+  constructor(private readonly systemTasksService: SystemTasksService) {}
 
   @Get('all')
-  async getAllTasks(@Req() request: Request) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async getAllTasks() {
     return await this.systemTasksService.getAllTasks();
   }
 
   @Get('generate')
-  async getGptTasks(@Req() request: Request) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async getGptTasks() {
     return await this.systemTasksService.generateTaskFromGpt();
   }
 
   @Get(':id')
-  async getTaskById(@Req() request: Request, @Param('id') id: string) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async getTaskById(@Param('id') id: string) {
     return await this.systemTasksService.getTaskById(id);
   }
 
   @Post('add')
+  @RequireAdmin()
   async addNewTask(
-    @Req() request: Request,
+    @User() user: AuthUser,
     @Body()
     body: {
       title: string;
       content: string;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const result = await this.systemTasksService.createNewTask(body, user.user.id);
-
-    return result;
+    return await this.systemTasksService.createNewTask(body, user?.user?.id);
   }
 
   @Delete(':id')
-  async deleteTaskById(@Req() request: Request, @Param('id') id: string) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async deleteTaskById(@Param('id') id: string) {
     return await this.systemTasksService.deleteTaskById(id);
   }
 
   @Put(':id')
+  @RequireAdmin()
   async changeTaskById(
-    @Req() request: Request,
     @Param('id') id: string,
     @Body()
     body: {
@@ -103,15 +56,6 @@ export class SystemTasksController {
       status?: ETASKS_STATUS;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
     return await this.systemTasksService.updateTask(id, body);
   }
 }
