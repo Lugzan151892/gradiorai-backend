@@ -3,36 +3,26 @@ import {
   Controller,
   Delete,
   Get,
-  HttpException,
-  HttpStatus,
   Param,
   Post,
   Put,
   Query,
-  Req,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
-import { AuthService } from '../auth/auth.service';
-import { UserService } from './user.service';
-import { InterviewService } from 'src/interview/interview.service';
+import { UserService } from '@/user/user.service';
+import { InterviewService } from '@/interview/interview.service';
+import { OptionalAuth, RequireAdmin, RequireAuth } from '@/auth/decorators/auth.decorator';
+import { AuthUser, User } from '@/auth/decorators/user.decorator';
 
 @Controller('user')
 export class UserController {
   constructor(
-    private readonly authService: AuthService,
     private readonly userService: UserService,
     private readonly interviewService: InterviewService
   ) {}
 
   @Get('user')
-  async getUserData(@Req() request: Request) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new UnauthorizedException('User not found');
-    }
-
+  @RequireAuth()
+  async getUserData(@User() user: AuthUser) {
     return {
       data: user.user,
       accessToken: user.accessToken,
@@ -40,92 +30,55 @@ export class UserController {
   }
 
   @Post('user-review')
+  @OptionalAuth()
   async createReview(
     @Body()
     body: {
       comment: string;
       rating?: number;
     },
-    @Req() request: Request
+    @User() user: AuthUser
   ) {
-    const user = await this.authService.getUserFromTokens(request);
     const result = await this.userService.createNewReview(body, user?.user?.id, user.userIp);
 
     return result;
   }
 
   @Get('users')
-  async getUsers(@Query() query: { only_admins?: 'true' | 'false' }, @Req() request: Request) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user || !user?.user.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-    const users = await this.userService.getUsers(query.only_admins === 'true');
-
-    return users;
+  @RequireAdmin()
+  async getUsers(@Query() query: { only_admins?: 'true' | 'false' }) {
+    return await this.userService.getUsers(query.only_admins === 'true');
   }
 
   @Get('reviews')
-  async getReviews(@Req() request: Request) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user?.user.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const reviews = await this.userService.getAllReviews();
-
-    return reviews;
+  @RequireAdmin()
+  async getReviews() {
+    return await this.userService.getAllReviews();
   }
 
   @Put('username')
+  @RequireAuth()
   async setUserName(
     @Body()
     body: {
       username: string;
     },
-    @Req() request: Request
+    @User() user: AuthUser
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new HttpException({ message: 'Пользователь не авторизован.', info: { type: 'user' } }, HttpStatus.BAD_REQUEST);
-    }
-
     return await this.userService.setUserName(user.user.id, body.username);
   }
 
   @Get('interviews')
-  async getInterviews(@Req() request: Request, @Query() query: { period?: string }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user?.user) {
-      throw new HttpException({ message: 'Не авторизован.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
-    }
-
+  @RequireAuth()
+  async getInterviews(@User() user: AuthUser, @Query() query: { period?: string }) {
     const interviews = await this.interviewService.getAllUserInterviews(user.user.id, query.period);
 
     return interviews;
   }
 
   @Delete('user/:id')
-  async deleteUser(@Req() request: Request, @Param('id') id: string) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user || !user.user.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async deleteUser(@Param('id') id: string) {
     return await this.userService.deleteUser(Number(id));
   }
 }

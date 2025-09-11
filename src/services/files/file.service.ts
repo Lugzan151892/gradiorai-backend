@@ -3,7 +3,7 @@ import * as pdfParse from 'pdf-parse';
 import * as mammoth from 'mammoth';
 import * as fs from 'fs';
 import * as path from 'path';
-import { IFile } from '../../utils/interfaces/files';
+import { IFile } from '@/utils/interfaces/files';
 import * as fsPromises from 'fs/promises';
 
 const fixOriginalName = (wrongName: string): string => {
@@ -73,12 +73,6 @@ export class FileService {
     const fileContent = await fsPromises.readFile(file.path);
 
     try {
-      // const { buffer, mimetype, originalname } = file;
-
-      // if (!buffer || buffer.length === 0) {
-      //   throw new BadRequestException('Пустой файл. Возможно, файл не загрузился корректно');
-      // }
-
       if (file.mimetype === 'application/pdf') {
         const data = await pdfParse(new Uint8Array(fileContent));
         return data.text;

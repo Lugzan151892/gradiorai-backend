@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from 'src/prisma/prisma.module';
-import { AuthModule } from 'src/auth/auth.module';
-import { SystemTransactionsService } from './system-transactions-service';
-import { SystemTransactionsController } from './system-transactions.controller';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { AuthModule } from '@/auth/auth.module';
+import { SystemTransactionsService } from '@/user/system-transactions/system-transactions-service';
+import { SystemTransactionsController } from '@/user/system-transactions/system-transactions.controller';
 
 @Module({
   imports: [PrismaModule, AuthModule],

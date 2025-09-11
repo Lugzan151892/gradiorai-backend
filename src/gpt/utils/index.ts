@@ -1,6 +1,6 @@
-import { EGPT_SETTINGS_TYPE } from '../../utils/interfaces/gpt/interfaces';
-import { ESKILL_LEVEL } from '../../utils/interfaces/enums';
-import { IGptSettings } from '../gpt.service';
+import { EGPT_SETTINGS_TYPE } from '@/utils/interfaces/gpt/interfaces';
+import { ESKILL_LEVEL } from '@/utils/interfaces/enums';
+import { IGptSettings } from '@/gpt/gpt.service';
 
 export const getSkillLevel = (level: ESKILL_LEVEL) => {
   switch (level) {
@@ -13,10 +13,12 @@ export const getSkillLevel = (level: ESKILL_LEVEL) => {
   }
 };
 
-// $PASSED_QUESTIONS - вопросы из базы, которые пройдены пользователем, 20 штук.
-// $QUESTIONS_AMOUNT - количество генерируемых вопросов
-// $SKILL_LEVEL - уровень senior/junior
-// $QUESTION_TECHS - внутренние технологии в направлении, через запятую HTML, React, CSS
+/**
+ * $PASSED_QUESTIONS - вопросы из базы, которые пройдены пользователем, 20 штук.
+ * $QUESTIONS_AMOUNT - количество генерируемых вопросов
+ * $SKILL_LEVEL - уровень senior/junior
+ * $QUESTION_TECHS - внутренние технологии в направлении, через запятую HTML, React, CSS
+ */
 
 export const defaultTestSettingsData: IGptSettings = {
   user_model: 'gpt-4o-mini',
