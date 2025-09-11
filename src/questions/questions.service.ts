@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { IQuestion } from '../utils/interfaces/questions';
+import { PrismaService } from '@/prisma/prisma.service';
+import { IQuestion } from '@/utils/interfaces/questions';
 
 @Injectable()
 export class QuestionsService {

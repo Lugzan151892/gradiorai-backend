@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { SystemFilesController } from './system-files.controller';
-import { SystemFilesService } from './system-files.service';
-import { FileModule } from 'src/services/files/file.module';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { SystemFilesController } from '@/system/files/system-files.controller';
+import { SystemFilesService } from '@/system/files/system-files.service';
+import { FileModule } from '@/services/files/file.module';
 
 @Module({
   imports: [PrismaModule, FileModule],

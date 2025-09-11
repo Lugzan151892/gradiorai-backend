@@ -1,4 +1,3 @@
-import { AuthService } from 'src/auth/auth.service';
 import {
   Controller,
   Get,
@@ -16,16 +15,17 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
-import { TranslationsService } from './translations.service';
-import { UpdateTranslationDto } from './dto/update-translation.dto';
+import { TranslationsService } from '@/translations/translations.service';
+import { UpdateTranslationDto } from '@/translations/dto/update-translation.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
+import { RequireAdmin } from '@/auth/decorators/auth.decorator';
+import { AuthUser, User } from '@/auth/decorators/user.decorator';
 
 @Controller('translations')
 export class TranslationsController {
   constructor(
     private svc: TranslationsService,
-    private authService: AuthService,
     private configService: ConfigService
   ) {}
 
@@ -40,22 +40,13 @@ export class TranslationsController {
 
   // импорт: можно отправлять JSON в body или загружать файл multipart/form-data (поле "file")
   @Post('import')
+  @RequireAdmin()
   @UseInterceptors(FileInterceptor('file'))
   async import(
     @Body() body: any,
     @UploadedFile() file: Express.Multer.File | undefined,
     @Query('overwrite') overwriteStr: string | undefined,
-    @Req() request: Request
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
     const overwrite = overwriteStr === 'true';
     const json = file ? JSON.parse(file.buffer.toString()) : body;
     await this.svc.importTranslations(json, overwrite);
@@ -63,9 +54,8 @@ export class TranslationsController {
   }
 
   @Patch('update')
-  async update(@Body() dto: UpdateTranslationDto, @Req() request: Request) {
-    const user = await this.authService.getUserFromTokens(request);
-
+  @RequireAdmin()
+  async update(@Body() dto: UpdateTranslationDto, @Req() request: Request, @User() user: AuthUser) {
     if (!user.user?.admin && (!dto.password || dto.password !== this.configService.get('TRANSLATION_PASSWORD'))) {
       throw new HttpException(
         { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
@@ -87,20 +77,12 @@ export class TranslationsController {
   }
 
   @Delete(':locale/:namespace/:key')
+  @RequireAdmin()
   async deleteKey(
     @Param('locale') locale: string,
     @Param('namespace') namespace: string,
     @Param('key') key: string,
-    @Req() request: Request
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
     return this.svc.deleteKey(locale, namespace, key);
   }
 }
