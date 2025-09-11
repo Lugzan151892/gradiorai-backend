@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, HttpStatus, HttpException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { UpdateTranslationDto } from './dto/update-translation.dto';
+import { PrismaService } from '@/prisma/prisma.service';
+import { UpdateTranslationDto } from '@/translations/dto/update-translation.dto';
 
 @Injectable()
 export class TranslationsService {

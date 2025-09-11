@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { IFile } from 'src/utils/interfaces/files';
+import { PrismaService } from '@/prisma/prisma.service';
+import { IFile } from '@/utils/interfaces/files';
 
 @Injectable()
 export class SystemFilesService {

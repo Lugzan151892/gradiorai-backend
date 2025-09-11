@@ -7,44 +7,34 @@ import {
   HttpStatus,
   Post,
   Query,
-  Req,
   Sse,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { GptService } from '../gpt/gpt.service';
-import { IGPTStreamMessageEvent } from '../utils/interfaces/gpt/interfaces';
-import { AuthService } from '../auth/auth.service';
-import { Request } from 'express';
-import { InterviewService } from '../interview/interview.service';
+import { GptService } from '@/gpt/gpt.service';
+import { IGPTStreamMessageEvent } from '@/utils/interfaces/gpt/interfaces';
+import { InterviewService } from '@/interview/interview.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
-import { FileService } from '../services/files/file.service';
-import { createTempMulterStorage } from '../services/files/custom-storage.service';
-import { ActionsLogService } from 'src/user/actions-log/actions-log.service';
-import { EUSER_ACTION_TYPE } from 'src/utils/interfaces/enums';
+import { FileService } from '@/services/files/file.service';
+import { createTempMulterStorage } from '@/services/files/custom-storage.service';
+import { ActionsLogService } from '@/user/actions-log/actions-log.service';
+import { EUSER_ACTION_TYPE } from '@/utils/interfaces/enums';
+import { RequireAuth, RequireAdmin, Public, OptionalAuth } from '@/auth/decorators/auth.decorator';
+import { User, AuthUser } from '@/auth/decorators/user.decorator';
 
 @Controller('interview')
 export class InterviewController {
   constructor(
     private readonly gptService: GptService,
-    private readonly authService: AuthService,
     private readonly interviewService: InterviewService,
     private readonly fileService: FileService,
     private readonly actionsLog: ActionsLogService
   ) {}
 
   @Get('interview')
-  async getInterview(@Req() request: Request, @Query() query: { id: string }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new HttpException(
-        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAuth()
+  async getInterview(@User() user: AuthUser, @Query() query: { id: string }) {
     if (!query.id) {
       throw new HttpException({ message: 'Некорректно указан id.' }, HttpStatus.BAD_REQUEST);
     }
@@ -66,29 +56,16 @@ export class InterviewController {
   }
 
   @Get('user-interviews')
-  async getUserInterviews(@Req() request: Request) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user.admin) {
-      throw new HttpException({ message: 'Только для админов.', info: { type: 'auth' } }, HttpStatus.BAD_REQUEST);
-    }
-
+  @RequireAdmin()
+  async getUserInterviews(@User() user: AuthUser) {
     const interviewList = await this.interviewService.getAllUserInterviews(user.user.id);
 
     return interviewList;
   }
 
   @Post('message')
-  async addUserMessage(@Req() request: Request, @Body() body: { content: string; interviewId: string }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new HttpException(
-        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAuth()
+  async addUserMessage(@User() user: AuthUser, @Body() body: { content: string; interviewId: string }) {
     const interview = await this.interviewService.getInterviewById(body.interviewId);
 
     if (!interview) {
@@ -112,16 +89,8 @@ export class InterviewController {
   }
 
   @Post('chat/continue')
-  async send(@Req() request: Request, @Body() body: { content: string; interviewId: string }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new HttpException(
-        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAuth()
+  async send(@User() user: AuthUser, @Body() body: { content: string; interviewId: string }) {
     const interview = await this.interviewService.getInterviewById(body.interviewId);
 
     if (!interview) {
@@ -141,28 +110,20 @@ export class InterviewController {
   }
 
   @Post('create')
+  @RequireAuth()
   @UseInterceptors(
     AnyFilesInterceptor({
       storage: createTempMulterStorage(),
     })
   )
   async createInterview(
-    @Req() request: Request,
+    @User() user: AuthUser,
     @UploadedFiles() files: Express.Multer.File[],
     @Body()
     body: {
       user_prompt: string;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new HttpException(
-        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
     if (!files) {
       throw new HttpException({ message: 'Файлы не добавлены', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
     }
@@ -194,58 +155,32 @@ export class InterviewController {
       isAdmin: user.user?.admin,
     });
 
-    /** Скрываем сохранение файлов. */
-    // const savedFiles = await this.fileService.moveFilesToStorage(
-    //   [userCvFile, ...(userVacFile ? [userVacFile] : [])],
-    //   user.user.id,
-    //   'interview',
-    //   newInterview.id,
-    //   false
-    // );
-
-    // const updatedInterview = await this.interviewService.updateInterviewFiles(
-    //   savedFiles.map((file, index) => ({
-    //     ...file,
-    //     inside_type: !index ? 'cv' : 'vac',
-    //   })),
-    //   newInterview.id,
-    //   user.user.id
-    // );
-
     return newInterview;
   }
 
   @Delete('delete')
-  async deleteTech(@Req() request: Request, @Body() body: { id: string }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async deleteTech(@User() user: AuthUser, @Body() body: { id: string }) {
     const result = await this.interviewService.deleteInterview(body.id);
 
     return result;
   }
 
   @Get('stream')
+  @Public()
   @Sse()
   stream(): Observable<IGPTStreamMessageEvent> {
     return this.gptService.getStream();
   }
 
   @Post('test-resume')
+  @OptionalAuth()
   @UseInterceptors(
     AnyFilesInterceptor({
       storage: createTempMulterStorage(),
     })
   )
-  async testResume(@Req() request: Request, @UploadedFiles() files: Express.Multer.File[]) {
-    const user = await this.authService.getUserFromTokens(request);
-
+  async testResume(@User() user: AuthUser, @UploadedFiles() files: Express.Multer.File[]) {
     if (!files) {
       throw new HttpException({ message: 'Файлы не добавлены', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
     }
@@ -275,9 +210,8 @@ export class InterviewController {
   }
 
   @Post('create-resume')
-  async createResume(@Req() request: Request, @Body() body: { prompt: string }) {
-    const user = await this.authService.getUserFromTokens(request);
-
+  @OptionalAuth()
+  async createResume(@User() user: AuthUser, @Body() body: { prompt: string }) {
     if (!body.prompt) {
       throw new HttpException({ message: 'Не добавлена информация о себе', info: { type: 'prompt' } }, HttpStatus.BAD_REQUEST);
     }

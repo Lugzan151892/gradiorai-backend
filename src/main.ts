@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from '@/app.module';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
-import { GlobalExceptionFilter } from './utils/errors/exception.filter';
-import { winstonConfig } from './config/winston/winston.config';
+import { GlobalExceptionFilter } from '@/utils/errors/exception.filter';
+import { winstonConfig } from '@/config/winston/winston.config';
 import * as path from 'path';
 import * as express from 'express';
 
