@@ -99,13 +99,15 @@ model User {
   updated_at                            DateTime               @updatedAt
   admin                                 Boolean                @default(false)
   username                              String?                @unique
+  last_login                            DateTime?
+  last_ip                               String?
+  level                                 Int    @default(1)
+  points                                Int    @default(0)
   questions_passed                      UserQuestionProgress[]
   saved_question                        Question[]
   refresh_token                         RefreshToken?
   test_reviews                          Reviews[]
   interviews                            Interview[]
-  last_login                            DateTime?
-  last_ip                               String?
   ip_log                                UserIpLog[]
   interview_files                       InterviewFiles[]
   files                                 UserFiles[]
@@ -114,6 +116,9 @@ model User {
   created_tasks                         Task[]
   user_rating                           UserRating?
   user_rating_log                       UserRatingLog[]
+  user_achievements                     UserAchievement[]
+  user_achievement_logs                 UserAchievementLog[]
+  test_results                          TestResult[]
 }
 
 enum EUSER_FILES_TYPE {
@@ -324,4 +329,97 @@ model FakeUser {
   updated_at                DateTime             @updatedAt
   name                      String
   total_rating              Int                  @default(2000)
+}
+
+enum AchievementType {
+  PROGRESS
+  ONESHOT
+}
+
+enum AchievementTrigger {
+  ANSWER_QUESTION   // пользователь ответил на вопрос (payload `{ count?: number }`)
+  PASS_TEST         // пользователь завершил тест (payload `{ score?: number }`)
+  REGISTER          // регистрация
+  FIRST_TEST        // первый пройденный тест
+  LOGIN             // вход в аккаунт (пример)
+}
+
+model AchievementImage {
+  id           Int      @id @default(autoincrement())
+  key          String   @unique
+  filename     String
+  original_name String?
+  path         String
+  mimetype     String
+  size         Int
+  uploaded_at   DateTime @default(now())
+  achievement   Achievement?
+}
+
+model Achievement {
+  id            Int                 @id @default(autoincrement())
+  key           String              @unique // "pass_100_questions" — машинный ключ
+  title         String
+  description   String?             @default("")
+  type          AchievementType
+  trigger       AchievementTrigger
+  target        Int?                // для PROGRESS — целевое значение (например 100)
+  reward_points Int?                @default(0) // очки, которые дает достижение
+  image_id      Int?                @unique
+  image         AchievementImage?   @relation(fields: [image_id], references: [id], onDelete: SetNull)
+  active        Boolean             @default(true)
+  created_at    DateTime            @default(now())
+  updated_at    DateTime            @updatedAt
+
+  user_progress UserAchievement[]
+  logs          UserAchievementLog[]
+  @@index([trigger])
+}
+
+model UserAchievement {
+  id                            Int         @id @default(autoincrement())
+  user_id                       Int
+  achievement_id                Int
+  progress                      Int         @default(0)
+  completed                     Boolean     @default(false)
+  completed_at                  DateTime?
+  created_at                    DateTime    @default(now())
+  updated_at                    DateTime    @updatedAt
+
+  user                          User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  achievement                   Achievement @relation(fields: [achievement_id], references: [id], onDelete: Cascade)
+  user_achievement_logs         UserAchievementLog[]
+
+  @@unique([user_id, achievement_id])
+  @@index([user_id])
+  @@index([achievement_id])
+}
+
+model UserAchievementLog {
+  id                            Int         @id @default(autoincrement())
+  user_achievement_id           Int?
+  user_id                       Int
+  achievement_id                Int
+  delta                         Int         // изменение прогресса (например +1)
+  progress_after                Int
+  note                          String?
+  created_at                    DateTime    @default(now())
+
+  user                          User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  achievement                   Achievement   @relation(fields: [achievement_id], references: [id], onDelete: Cascade)
+  user_achievement              UserAchievement? @relation(fields: [user_achievement_id], references: [id], onDelete: Cascade)
+  @@index([user_id])
+  @@index([achievement_id])
+}
+
+model TestResult {
+  id                            Int      @id @default(autoincrement())
+  user_id                       Int
+  score                         Int
+  duration                      Int?
+  passed_at                     DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  @@index([user_id])
+  @@index([passed_at])
 }

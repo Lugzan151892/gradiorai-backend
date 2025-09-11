@@ -10,3 +10,9 @@ export const getIpFromRequest = (request: Request) => {
 
   return ip;
 };
+
+export const getBoolean = (value: string | boolean | undefined) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value === 'true';
+  return undefined;
+};
