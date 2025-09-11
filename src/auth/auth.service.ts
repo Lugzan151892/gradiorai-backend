@@ -8,7 +8,7 @@ import * as nodemailer from 'nodemailer';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Request } from 'express';
 import { getIpFromRequest } from '@/utils/request';
-import { USER_COMMON_SELECT, USER_FULL_PROFILE_SELECT } from '@/utils/selectors/user';
+import { USER_COMMON_SELECT, USER_FULL_PROFILE_SELECT } from '@/utils/selectors/user/user';
 
 const REDIS_TTL = 60 * 60 * 24 * 3;
 

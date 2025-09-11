@@ -4,10 +4,10 @@ import { AuthService } from '@/auth/auth.service';
 import { Request } from 'express';
 
 export enum AuthMode {
-  PUBLIC = 'public',           // Публичный доступ, авторизация не требуется
-  OPTIONAL = 'optional',       // Публичный доступ, но авторизация опциональна (для статистики)
+  PUBLIC = 'public', // Публичный доступ, авторизация не требуется
+  OPTIONAL = 'optional', // Публичный доступ, но авторизация опциональна (для статистики)
   AUTHENTICATED = 'authenticated', // Требуется авторизация
-  ADMIN = 'admin'             // Требуется авторизация + админские права
+  ADMIN = 'admin', // Требуется авторизация + админские права
 }
 
 export const AUTH_MODE_KEY = 'authMode';
@@ -20,8 +20,8 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const authMode = this.reflector.get<AuthMode>(AUTH_MODE_KEY, context.getHandler()) || AuthMode.AUTHENTICATED;
-    
+    const authMode = this.reflector.get<AuthMode>(AUTH_MODE_KEY, context.getHandler()) || AuthMode.PUBLIC;
+
     // Для публичных эндпоинтов просто пропускаем
     if (authMode === AuthMode.PUBLIC) {
       return true;
@@ -55,10 +55,7 @@ export class AuthGuard implements CanActivate {
           );
         }
         if (!user.user.admin) {
-          throw new HttpException(
-            { message: 'Недостаточно прав доступа.', info: { type: 'admin' } },
-            HttpStatus.FORBIDDEN
-          );
+          throw new HttpException({ message: 'Недостаточно прав доступа.', info: { type: 'admin' } }, HttpStatus.FORBIDDEN);
         }
         return true;
 
