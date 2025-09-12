@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
 import { UpdateAchievementDto } from './dto/update-achievement.dto';
-import { AchievementTrigger } from '@prisma/client';
+import { EACHIEVEMENT_TRIGGER } from '@prisma/client';
 import { IFile } from '@/utils/interfaces/files';
 import { getBoolean } from '@/utils/request';
 
@@ -108,10 +108,10 @@ export class AchievementsService {
   }
 
   // Основной обработчик ивентов: вызываем при событии.
-  async handleEvent(userId: number, trigger: AchievementTrigger | string, payload?: any) {
+  async handleEvent(userId: number, trigger: EACHIEVEMENT_TRIGGER | string, payload?: any) {
     // 1. Находим все активные достижения с данным триггером
     const achievements = await this.prisma.achievement.findMany({
-      where: { trigger: trigger as AchievementTrigger, active: true },
+      where: { trigger: trigger as EACHIEVEMENT_TRIGGER, active: true },
     });
 
     if (!achievements.length) return { updated: [], completed: [] };

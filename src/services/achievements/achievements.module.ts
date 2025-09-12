@@ -8,5 +8,6 @@ import { FileModule } from '@/services/files/file.module';
   imports: [PrismaModule, FileModule],
   providers: [AchievementsService],
   controllers: [AchievementsController],
+  exports: [AchievementsService],
 })
 export class AchievementsModule {}

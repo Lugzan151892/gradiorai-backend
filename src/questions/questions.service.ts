@@ -1,10 +1,15 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { IQuestion } from '@/utils/interfaces/questions';
+import { AchievementsService } from '@/services/achievements/achievements.service';
+import { EACHIEVEMENT_TRIGGER } from '@prisma/client';
 
 @Injectable()
 export class QuestionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly achievementsService: AchievementsService
+  ) {}
 
   async saveQuestion(question: IQuestion, userId: number) {
     const result = {
@@ -478,5 +483,37 @@ export class QuestionsService {
     });
 
     return { message: 'Вопрос успешно удален.' };
+  }
+
+  async addQuestionPassed(correct: boolean, userId: number) {
+    await this.prisma.userQuestionPassed.create({
+      data: {
+        correct: correct,
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
+      },
+    });
+
+    await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.ANSWER_QUESTION, { count: 1 });
+
+    return { message: 'Вопрос успешно добавлен.' };
+  }
+
+  async testPassed(score: number, userId: number) {
+    await this.prisma.testResult.create({
+      data: {
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
+        score: score,
+      },
+    });
+
+    await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.PASS_TEST, { score: score });
   }
 }

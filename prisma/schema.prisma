@@ -103,6 +103,7 @@ model User {
   last_ip                               String?
   level                                 Int    @default(1)
   points                                Int    @default(0)
+  questions_passed_all                  UserQuestionPassed[]
   questions_passed                      UserQuestionProgress[]
   saved_question                        Question[]
   refresh_token                         RefreshToken?
@@ -331,17 +332,30 @@ model FakeUser {
   total_rating              Int                  @default(2000)
 }
 
-enum AchievementType {
+enum EACHIEVEMENT_TYPE {
   PROGRESS
   ONESHOT
 }
 
-enum AchievementTrigger {
-  ANSWER_QUESTION   // пользователь ответил на вопрос (payload `{ count?: number }`)
-  PASS_TEST         // пользователь завершил тест (payload `{ score?: number }`)
-  REGISTER          // регистрация
-  FIRST_TEST        // первый пройденный тест
-  LOGIN             // вход в аккаунт (пример)
+enum EACHIEVEMENT_TRIGGER {
+  /** пользователь ответил на вопрос (payload `{ count?: number } */
+  ANSWER_QUESTION
+  /** пользователь завершил тест (payload `{ score?: number }`) */
+  PASS_TEST
+  /** пользователь завершил интервью (payload `{ score?: number }`) */
+  PASS_INTERVIEW
+  /** регистрация */
+  REGISTER
+  /** вход в аккаунт */
+  LOGIN
+  /** установка username */
+  USERNAME_SET
+  /** добавление аватара */
+  AVATAR_SET
+  /** добавление cv */
+  CV_SET
+  /** добавление отзыва о тесте */
+  TEST_REVIEW_CREATE
 }
 
 model AchievementImage {
@@ -361,8 +375,8 @@ model Achievement {
   key           String              @unique // "pass_100_questions" — машинный ключ
   title         String
   description   String?             @default("")
-  type          AchievementType
-  trigger       AchievementTrigger
+  type          EACHIEVEMENT_TYPE
+  trigger       EACHIEVEMENT_TRIGGER
   target        Int?                // для PROGRESS — целевое значение (например 100)
   reward_points Int?                @default(0) // очки, которые дает достижение
   image_id      Int?                @unique
@@ -410,6 +424,15 @@ model UserAchievementLog {
   user_achievement              UserAchievement? @relation(fields: [user_achievement_id], references: [id], onDelete: Cascade)
   @@index([user_id])
   @@index([achievement_id])
+}
+
+model UserQuestionPassed {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  passed_at    DateTime  @default(now())
+  correct      Boolean?  // правильно ли ответил
+
+  user     User      @relation(fields: [user_id], references: [id])
 }
 
 model TestResult {
