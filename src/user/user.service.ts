@@ -154,6 +154,8 @@ export class UserService {
       },
     });
 
+    await this.achievementsService.handleEvent(id, EACHIEVEMENT_TRIGGER.USERNAME_SET);
+
     return updatedUser;
   }
 
