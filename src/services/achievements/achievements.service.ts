@@ -45,7 +45,13 @@ export class AchievementsService {
     return this.prisma.achievement.update({
       where: { id },
       data: {
-        ...dto,
+        key: dto.key,
+        title: dto.title,
+        description: dto.description ?? '',
+        type: dto.type,
+        trigger: dto.trigger,
+        target: dto.target ? +dto.target : null,
+        reward_points: dto.reward_points ? +dto.reward_points : 0,
         ...(file && {
           image: {
             upsert: {
