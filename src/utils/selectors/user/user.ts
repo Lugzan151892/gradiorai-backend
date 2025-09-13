@@ -1,5 +1,5 @@
-import { USER_RATING_SELECT } from "@/utils/selectors/user/user-rating";
-import { USER_FILES_SELECT } from "@/utils/selectors/user/user-files";
+import { USER_RATING_SELECT } from '@/utils/selectors/user/user-rating';
+import { USER_FILES_SELECT } from '@/utils/selectors/user/user-files';
 
 export const USER_COMMON_SELECT = {
   id: true,
@@ -10,6 +10,8 @@ export const USER_COMMON_SELECT = {
   admin: true,
   isGoogle: true,
   is_password_created: true,
+  level: true,
+  points: true,
 } as const;
 
 export const USER_FULL_PROFILE_SELECT = {

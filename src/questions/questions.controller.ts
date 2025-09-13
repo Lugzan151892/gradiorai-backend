@@ -152,8 +152,8 @@ export class QuestionsController {
 
   @Post('add-question-passed')
   @RequireAuth()
-  async addQuestionPassed(@User() user: AuthUser, @Body() body: { correct: boolean }) {
-    return await this.questionsService.addQuestionPassed(body.correct, user.user.id);
+  async addQuestionPassed(@User() user: AuthUser, @Body() body: { correct: boolean; level: number }) {
+    return await this.questionsService.addQuestionPassed(body.correct, user.user.id, body.level);
   }
 
   @Post('test-passed')

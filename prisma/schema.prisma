@@ -340,6 +340,12 @@ enum EACHIEVEMENT_TYPE {
 enum EACHIEVEMENT_TRIGGER {
   /** пользователь ответил на вопрос (payload `{ count?: number } */
   ANSWER_QUESTION
+  /** пользователь ответил на вопрос правильно */
+  ANSWER_QUESTION_CORRECT
+  /** пользователь ответил на вопрос правильно на уровне */
+  ANSWER_QUESTION_CORRECT_LEVEL_1
+  ANSWER_QUESTION_CORRECT_LEVEL_2
+  ANSWER_QUESTION_CORRECT_LEVEL_3
   /** пользователь завершил тест (payload `{ score?: number }`) */
   PASS_TEST
   /** пользователь завершил интервью (payload `{ score?: number }`) */

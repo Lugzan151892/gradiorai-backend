@@ -485,7 +485,7 @@ export class QuestionsService {
     return { message: 'Вопрос успешно удален.' };
   }
 
-  async addQuestionPassed(correct: boolean, userId: number) {
+  async addQuestionPassed(correct: boolean, userId: number, level: number) {
     await this.prisma.userQuestionPassed.create({
       data: {
         correct: correct,
@@ -498,6 +498,24 @@ export class QuestionsService {
     });
 
     await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.ANSWER_QUESTION, { count: 1 });
+
+    const getTrigger = (level: number) => {
+      switch (level) {
+        case 1:
+          return EACHIEVEMENT_TRIGGER.ANSWER_QUESTION_CORRECT_LEVEL_1;
+        case 2:
+          return EACHIEVEMENT_TRIGGER.ANSWER_QUESTION_CORRECT_LEVEL_2;
+        case 3:
+          return EACHIEVEMENT_TRIGGER.ANSWER_QUESTION_CORRECT_LEVEL_3;
+      }
+    };
+
+    if (correct) {
+      await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.ANSWER_QUESTION_CORRECT, { count: 1 });
+      if (getTrigger(level)) {
+        await this.achievementsService.handleEvent(userId, getTrigger(level), { count: 1 });
+      }
+    }
 
     return { message: 'Вопрос успешно добавлен.' };
   }
@@ -515,5 +533,7 @@ export class QuestionsService {
     });
 
     await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.PASS_TEST, { score: score });
+
+    return { message: 'Тест успешно завершен.' };
   }
 }
