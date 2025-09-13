@@ -20,6 +20,7 @@ import { SystemTasksModule } from '@/system/tasks/system-tasks.module';
 import { TranslationsModule } from '@/translations/translations.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from '@/auth/guards/auth.guard';
+import { AchievementsModule } from '@/services/achievements/achievements.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { AuthGuard } from '@/auth/guards/auth.guard';
     SystemFilesModule,
     SystemTasksModule,
     TranslationsModule,
+    AchievementsModule,
   ],
   controllers: [AppController],
   providers: [
