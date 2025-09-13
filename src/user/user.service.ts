@@ -1,9 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { EACHIEVEMENT_TRIGGER } from '@prisma/client';
+import { AchievementsService } from '@/services/achievements/achievements.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly achievementsService: AchievementsService
+  ) {}
 
   async createNewReview(data: { comment?: string; rating?: number }, userId?: number, ip?: string) {
     const reviewData: {
@@ -28,6 +33,10 @@ export class UserService {
         id: true,
       },
     });
+
+    if (userId && data.comment) {
+      await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.TEST_REVIEW_CREATE);
+    }
 
     return result;
   }

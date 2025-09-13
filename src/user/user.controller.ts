@@ -1,28 +1,25 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { UserService } from '@/user/user.service';
 import { InterviewService } from '@/interview/interview.service';
 import { OptionalAuth, RequireAdmin, RequireAuth } from '@/auth/decorators/auth.decorator';
 import { AuthUser, User } from '@/auth/decorators/user.decorator';
+import { EACHIEVEMENT_TRIGGER } from '@prisma/client';
+import { AchievementsService } from '@/services/achievements/achievements.service';
 
 @Controller('user')
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    private readonly interviewService: InterviewService
+    private readonly interviewService: InterviewService,
+    private readonly achievementsService: AchievementsService
   ) {}
 
   @Get('user')
   @RequireAuth()
   async getUserData(@User() user: AuthUser) {
+    await this.achievementsService.handleEvent(user.user.id, EACHIEVEMENT_TRIGGER.LOGIN);
+    await this.achievementsService.handleEvent(user.user.id, EACHIEVEMENT_TRIGGER.REGISTER);
+
     return {
       data: user.user,
       accessToken: user.accessToken,
