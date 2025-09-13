@@ -3,14 +3,25 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '@/prisma/prisma.service';
 import { IFile } from '@/utils/interfaces/files';
-import { EUSER_FILES_TYPE } from '@prisma/client';
+import { EACHIEVEMENT_TRIGGER, EUSER_FILES_TYPE } from '@prisma/client';
+import { AchievementsService } from '@/services/achievements/achievements.service';
 
 @Injectable()
 export class UserFilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly achievementsService: AchievementsService
+  ) {}
 
   async saveOrReplace(type: EUSER_FILES_TYPE, fileMeta: IFile, userId: number) {
     const existing = await this.prisma.userFiles.findFirst({ where: { type, user_id: userId } });
+
+    if (type === EUSER_FILES_TYPE.AVATAR) {
+      await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.AVATAR_SET);
+    }
+    if (type === EUSER_FILES_TYPE.CV) {
+      await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.CV_SET);
+    }
 
     if (existing) {
       const fullPath = path.join(process.cwd(), existing.path);

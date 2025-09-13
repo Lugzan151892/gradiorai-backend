@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpException,
-  HttpStatus,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Post, Query } from '@nestjs/common';
 import { IQuestionResponse } from '@/utils/interfaces/questions';
 import { QuestionsService } from '@/questions/questions.service';
 import { RequireAdmin, RequireAuth } from '@/auth/decorators/auth.decorator';
@@ -15,9 +6,7 @@ import { AuthUser, User } from '@/auth/decorators/user.decorator';
 
 @Controller('questions')
 export class QuestionsController {
-  constructor(
-    private readonly questionsService: QuestionsService
-  ) {}
+  constructor(private readonly questionsService: QuestionsService) {}
 
   @Post('save')
   @RequireAuth()
@@ -159,5 +148,17 @@ export class QuestionsController {
   @RequireAdmin()
   async deleteQuestion(@Body() body: { id: number }) {
     return await this.questionsService.deleteQuestionById(body.id);
+  }
+
+  @Post('add-question-passed')
+  @RequireAuth()
+  async addQuestionPassed(@User() user: AuthUser, @Body() body: { correct: boolean; level: number }) {
+    return await this.questionsService.addQuestionPassed(body.correct, user.user.id, body.level);
+  }
+
+  @Post('test-passed')
+  @RequireAuth()
+  async testPassed(@User() user: AuthUser, @Body() body: { score: number }) {
+    return await this.questionsService.testPassed(body.score, user.user.id);
   }
 }
