@@ -193,7 +193,7 @@ export class AchievementsService {
           if (user) {
             let targetLevel = user.level;
             let newPoints = (user.points ?? 0) + ach.reward_points;
-            while (newPoints >= targetLevel * 1000) {
+            while (newPoints >= targetLevel * 2 * 100) {
               targetLevel++;
             }
             if (targetLevel > user.level) {
