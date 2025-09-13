@@ -30,7 +30,7 @@ export class AchievementsController {
   @UseInterceptors(FileInterceptor('image', { storage: createTempMulterStorage() }))
   async update(@Param('id') id: string, @Body() dto: UpdateAchievementDto, @UploadedFile() image?: Express.Multer.File) {
     const savedFiles = image ? await this.filesSvc.moveFilesToStorage([image], 0, 'system', dto.key, true) : null;
-    const fileMeta = savedFiles[0];
+    const fileMeta = savedFiles?.[0];
 
     return this.svc.update(Number(id), dto, fileMeta);
   }
