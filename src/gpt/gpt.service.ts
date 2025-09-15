@@ -105,7 +105,8 @@ export class GptService {
     params: { level: ESKILL_LEVEL; techs?: number[] },
     userId?: number,
     isAdmin?: boolean,
-    userIp?: string
+    userIp?: string,
+    locale?: string
   ) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
     const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.TEST);
@@ -117,9 +118,10 @@ export class GptService {
       passedQuestions = await this.questionService.getPassedQuestionsByUser(params.level, userId, params.techs);
     }
 
-    const questionsFromDatabase = isAdmin
-      ? []
-      : await this.questionService.getNonPassedQuestions(params.level, questionsAmount, userId, params.techs);
+    const questionsFromDatabase =
+      isAdmin || locale === 'en'
+        ? []
+        : await this.questionService.getNonPassedQuestions(params.level, questionsAmount, userId, params.techs);
 
     if (questionsFromDatabase.length >= questionsAmount) {
       return {
@@ -147,7 +149,7 @@ export class GptService {
       messages: [
         {
           role: 'system',
-          content: replacePromptKeywords(settings.system_message, replaceData),
+          content: `${replacePromptKeywords(settings.system_message, replaceData)} ${locale ? `Тесты генерируются на языке: ${locale}` : ''}`,
         },
         {
           role: 'user',
