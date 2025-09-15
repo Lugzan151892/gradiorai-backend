@@ -12,6 +12,8 @@ import { Stream } from 'openai/streaming';
 import { EGPT_SETTINGS_TYPE, IGPTStreamMessageEvent, IInterview } from '@/utils/interfaces/gpt/interfaces';
 import { InterviewService } from '@/interview/interview.service';
 import { ActionsLogService } from '@/user/actions-log/actions-log.service';
+import { AchievementsService } from '@/services/achievements/achievements.service';
+import { EACHIEVEMENT_TRIGGER } from '@prisma/client';
 
 export interface IGptSettings {
   id?: number;
@@ -59,7 +61,8 @@ export class GptService {
     private readonly prismaService: PrismaService,
     @Inject(forwardRef(() => InterviewService))
     private readonly interviewService: InterviewService,
-    private readonly actionsLog: ActionsLogService
+    private readonly actionsLog: ActionsLogService,
+    private readonly achievementsService: AchievementsService
   ) {}
 
   async getSettings(type: EGPT_SETTINGS_TYPE) {
@@ -181,7 +184,7 @@ export class GptService {
     return this.stream$.asObservable();
   }
 
-  async handleMessage(interview: IInterview, isAdmin?: boolean) {
+  async handleMessage(interview: IInterview, isAdmin?: boolean, userId?: number) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
     const openai = new OpenAI({ apiKey: apiKey });
     const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.INTERVIEW);
@@ -271,6 +274,12 @@ export class GptService {
       });
     } else {
       const finishedInterview = await this.interviewService.finishInterview(interview.id, buffer.replace('[R]', ''));
+      if (userId) {
+        await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.PASS_INTERVIEW);
+        if (finishedInterview.score.split('/')[0] === '10') {
+          await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.PASS_INTERVIEW_SCORE_10);
+        }
+      }
 
       this.stream$.next({
         name: 'data',
