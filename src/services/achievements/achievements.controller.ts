@@ -19,7 +19,9 @@ export class AchievementsController {
   @RequireAdmin()
   @UseInterceptors(FileInterceptor('image', { storage: createTempMulterStorage() }))
   async create(@Body() dto: CreateAchievementDto, @UploadedFile() image?: Express.Multer.File) {
-    const savedFiles = image ? await this.filesSvc.moveFilesToStorage([image], 0, 'system', dto.key, true) : null;
+    const savedFiles = image
+      ? await this.filesSvc.moveFilesToStorage([image], 0, 'system', `achievements/${dto.key}`, true, true)
+      : null;
     const fileMeta = savedFiles[0];
 
     return this.svc.create(dto, fileMeta);
@@ -29,7 +31,9 @@ export class AchievementsController {
   @RequireAdmin()
   @UseInterceptors(FileInterceptor('image', { storage: createTempMulterStorage() }))
   async update(@Param('id') id: string, @Body() dto: UpdateAchievementDto, @UploadedFile() image?: Express.Multer.File) {
-    const savedFiles = image ? await this.filesSvc.moveFilesToStorage([image], 0, 'system', dto.key, true) : null;
+    const savedFiles = image
+      ? await this.filesSvc.moveFilesToStorage([image], 0, 'system', `achievements/${dto.key}`, true, true)
+      : null;
     const fileMeta = savedFiles?.[0];
 
     return this.svc.update(Number(id), dto, fileMeta);
