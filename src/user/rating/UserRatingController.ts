@@ -54,4 +54,9 @@ export class UserRatingController {
   async deleteFakeUser(@Body() body: { id: string }) {
     return await this.userRatingService.deleteFakeUser(body.id);
   }
+
+  @Get('average-rating')
+  async getAverageRating() {
+    return await this.userRatingService.getAverageRating();
+  }
 }
