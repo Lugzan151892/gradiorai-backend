@@ -176,4 +176,14 @@ export class UserRatingService {
 
     return await this.prisma.fakeUser.delete({ where: { id } });
   }
+
+  async getAverageRating() {
+    const avgRating = await this.prisma.userRating.aggregate({
+      _avg: {
+        total_rating: true,
+      },
+    });
+
+    return { average_rating: avgRating._avg.total_rating ?? 0 };
+  }
 }

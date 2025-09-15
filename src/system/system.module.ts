@@ -8,9 +8,10 @@ import { QuestionsModule } from '@/questions/questions.module';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { InterviewModule } from '@/interview/interview.module';
 import { ActionsLogModule } from '@/user/actions-log/actions-log.module';
+import { AchievementsModule } from '@/services/achievements/achievements.module';
 
 @Module({
-  imports: [AuthModule, QuestionsModule, PrismaModule, GptModule, InterviewModule, ActionsLogModule],
+  imports: [AuthModule, QuestionsModule, PrismaModule, GptModule, InterviewModule, ActionsLogModule, AchievementsModule],
   providers: [SystemService, GptService],
   controllers: [SystemController],
 })
