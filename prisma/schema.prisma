@@ -350,6 +350,8 @@ enum EACHIEVEMENT_TRIGGER {
   PASS_TEST
   /** пользователь завершил интервью (payload `{ score?: number }`) */
   PASS_INTERVIEW
+  /** пользователь завершил интервью с оценкой 10 */
+  PASS_INTERVIEW_SCORE_10
   /** регистрация */
   REGISTER
   /** вход в аккаунт */
@@ -362,6 +364,7 @@ enum EACHIEVEMENT_TRIGGER {
   CV_SET
   /** добавление отзыва о тесте */
   TEST_REVIEW_CREATE
+
 }
 
 model AchievementImage {
