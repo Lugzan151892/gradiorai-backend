@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -7,7 +7,8 @@ import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Request } from 'express';
-import { getIpFromRequest } from 'src/utils/request';
+import { getIpFromRequest } from '@/utils/request';
+import { USER_COMMON_SELECT, USER_FULL_PROFILE_SELECT } from '@/utils/selectors/user/user';
 
 const REDIS_TTL = 60 * 60 * 24 * 3;
 
@@ -136,13 +137,7 @@ export class AuthService {
         password: hashedPassword,
         admin: adminsList.includes(email),
       },
-      select: {
-        id: true,
-        email: true,
-        created_at: true,
-        updated_at: true,
-        admin: true,
-      },
+      select: USER_COMMON_SELECT,
     });
 
     const refreshToken = await this.generateRefreshToken(createdUser.id);
@@ -217,7 +212,7 @@ export class AuthService {
       );
     }
 
-    const passwordsMatch = await bcrypt.compare(password, user.password);
+    const passwordsMatch = (user.isGoogle && !user.is_password_created) || (await bcrypt.compare(password, user.password));
 
     if (!passwordsMatch) {
       throw new HttpException({ message: 'Неверный пароль', info: { type: 'password' } }, HttpStatus.BAD_REQUEST);
@@ -280,146 +275,80 @@ export class AuthService {
       };
     }
 
-    try {
-      let user = null;
+    let user = null;
 
-      if (accessToken) {
-        const tokenData = await this.getAccessTokenData(accessToken);
+    if (accessToken) {
+      const tokenData = await this.getAccessTokenData(accessToken);
 
-        user = tokenData
-          ? await this.prisma.user.findUnique({
-              where: {
-                id: tokenData.userId,
-              },
-              select: {
-                id: true,
-                email: true,
-                username: true,
-                created_at: true,
-                updated_at: true,
-                last_ip: true,
-                last_login: true,
-                ip_log: {
-                  take: 3,
-                  orderBy: {
-                    createdAt: 'desc',
-                  },
-                },
-                admin: true,
-                isGoogle: true,
-                is_password_created: true,
-                files: {
-                  select: {
-                    id: true,
-                    filename: true,
-                    originalName: true,
-                    mimetype: true,
-                    size: true,
-                    path: true,
-                    public: true,
-                    type: true,
-                    createdAt: true,
-                    updatedAt: true,
-                  },
-                },
-              },
-            })
-          : null;
-      }
+      user = tokenData
+        ? await this.prisma.user.findUnique({
+            where: {
+              id: tokenData.userId,
+            },
+            select: USER_FULL_PROFILE_SELECT,
+          })
+        : null;
+    }
 
-      if (user) {
-        await this.updateUserSystemData(user.id, userIp);
+    if (user) {
+      await this.updateUserSystemData(user.id, userIp);
+      return {
+        user: user,
+        accessToken: accessToken,
+        userIp,
+      };
+    }
+
+    if (refreshToken) {
+      const refreshData = await this.getRefreshTokenData(refreshToken);
+      user = refreshData
+        ? await this.prisma.user.findUnique({
+            where: {
+              id: refreshData.userId,
+            },
+            select: USER_FULL_PROFILE_SELECT,
+          })
+        : null;
+
+      if (!user) {
         return {
-          user: user,
-          accessToken: accessToken,
           userIp,
         };
       }
 
-      if (refreshToken) {
-        const refreshData = await this.getRefreshTokenData(refreshToken);
-        user = refreshData
-          ? await this.prisma.user.findUnique({
-              where: {
-                id: refreshData.userId,
-              },
-              select: {
-                id: true,
-                email: true,
-                username: true,
-                created_at: true,
-                updated_at: true,
-                last_ip: true,
-                last_login: true,
-                ip_log: {
-                  take: 3,
-                  orderBy: {
-                    createdAt: 'desc',
-                  },
-                },
-                admin: true,
-                isGoogle: true,
-                is_password_created: true,
-                files: {
-                  select: {
-                    id: true,
-                    filename: true,
-                    originalName: true,
-                    mimetype: true,
-                    size: true,
-                    path: true,
-                    public: true,
-                    type: true,
-                    createdAt: true,
-                    updatedAt: true,
-                  },
-                },
-              },
-            })
-          : null;
+      const savedRefresh = await this.prisma.refreshToken.findUnique({
+        where: {
+          user_id: user.id,
+        },
+      });
+      const now = new Date();
 
-        if (!user) {
-          return {
-            userIp,
-          };
-        }
+      if (!savedRefresh) {
+        return {
+          userIp,
+        };
+      }
 
-        const savedRefresh = await this.prisma.refreshToken.findUnique({
-          where: {
-            user_id: user.id,
-          },
+      if (savedRefresh && savedRefresh.expires_at < now) {
+        await this.prisma.refreshToken.delete({
+          where: { user_id: user.id },
         });
-        const now = new Date();
-
-        if (!savedRefresh) {
-          return {
-            userIp,
-          };
-        }
-
-        if (savedRefresh && savedRefresh.expires_at < now) {
-          await this.prisma.refreshToken.delete({
-            where: { user_id: user.id },
-          });
-
-          return {
-            userIp,
-          };
-        }
-
-        const accessToken = this.generateAccessToken(user.id);
-
-        await this.updateUserSystemData(user.id, userIp);
 
         return {
-          user: user,
-          accessToken: accessToken,
-          refreshToken: savedRefresh.token,
           userIp,
         };
       }
-    } catch (error) {
-      console.log('error v tokens, ', error);
+
+      const accessToken = this.generateAccessToken(user.id);
+
+      await this.updateUserSystemData(user.id, userIp);
+
+      return {
+        user: user,
+        accessToken: accessToken,
+        refreshToken: savedRefresh.token,
+        userIp,
+      };
     }
   }
 
@@ -535,6 +464,7 @@ export class AuthService {
       },
       data: {
         password: hashedPassword,
+        is_password_created: true,
       },
     });
 

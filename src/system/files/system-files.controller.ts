@@ -1,8 +1,8 @@
 import { Controller, Post, Delete, UploadedFile, UseInterceptors, Param, Get, NotFoundException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { createTempMulterStorage } from 'src/services/files/custom-storage.service';
-import { FileService } from '../../services/files/file.service';
-import { SystemFilesService } from './system-files.service';
+import { createTempMulterStorage } from '@/services/files/custom-storage.service';
+import { FileService } from '@/services/files/file.service';
+import { SystemFilesService } from '@/system/files/system-files.service';
 
 @Controller('system/files')
 export class SystemFilesController {

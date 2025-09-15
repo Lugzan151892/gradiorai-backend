@@ -3,7 +3,7 @@ import * as pdfParse from 'pdf-parse';
 import * as mammoth from 'mammoth';
 import * as fs from 'fs';
 import * as path from 'path';
-import { IFile } from '../../utils/interfaces/files';
+import { IFile } from '@/utils/interfaces/files';
 import * as fsPromises from 'fs/promises';
 
 const fixOriginalName = (wrongName: string): string => {
@@ -33,6 +33,26 @@ export class FileService {
   }
 
   /**
+   * Очищает директорию от всех файлов
+   */
+  private async clearDirectory(dirPath: string): Promise<void> {
+    try {
+      const files = await fs.promises.readdir(dirPath);
+      await Promise.all(
+        files.map(async (file) => {
+          const filePath = path.join(dirPath, file);
+          const stat = await fs.promises.stat(filePath);
+          if (stat.isFile()) {
+            await fs.promises.unlink(filePath);
+          }
+        })
+      );
+    } catch (error) {
+      // Директория не существует или пуста - это нормально
+    }
+  }
+
+  /**
    * Перемещает файлы из временной директории в нужную и возвращает мета-данные
    */
   async moveFilesToStorage(
@@ -40,10 +60,16 @@ export class FileService {
     userId: number,
     entityType: string,
     entityId: number | string,
-    isPublic = false
+    isPublic = false,
+    clearExisting = false
   ): Promise<IFile[]> {
     const targetDir = this.getUploadPath(String(userId), entityType, String(entityId), isPublic);
     await fs.promises.mkdir(targetDir, { recursive: true });
+
+    // Очищаем директорию от старых файлов если нужно
+    if (clearExisting) {
+      await this.clearDirectory(targetDir);
+    }
 
     const result = await Promise.all(
       files.map(async (file) => {
@@ -73,12 +99,6 @@ export class FileService {
     const fileContent = await fsPromises.readFile(file.path);
 
     try {
-      // const { buffer, mimetype, originalname } = file;
-
-      // if (!buffer || buffer.length === 0) {
-      //   throw new BadRequestException('Пустой файл. Возможно, файл не загрузился корректно');
-      // }
-
       if (file.mimetype === 'application/pdf') {
         const data = await pdfParse(new Uint8Array(fileContent));
         return data.text;
@@ -88,6 +108,29 @@ export class FileService {
         file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
         file.originalname.endsWith('.docx')
       ) {
+        const result = await mammoth.extractRawText({ buffer: fileContent });
+        return result.value;
+      }
+
+      throw new BadRequestException('Неподдерживаемый тип файла');
+    } catch (e) {
+      throw new HttpException({ message: 'Ошибка файла ' + e, info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  /**
+   * Извлекает текст из сохраненного файла по его пути
+   */
+  async extractTextFromSavedFile(filePath: string, mimetype: string): Promise<string> {
+    const fileContent = await fsPromises.readFile(filePath);
+
+    try {
+      if (mimetype === 'application/pdf') {
+        const data = await pdfParse(new Uint8Array(fileContent));
+        return data.text;
+      }
+
+      if (mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || filePath.endsWith('.docx')) {
         const result = await mammoth.extractRawText({ buffer: fileContent });
         return result.value;
       }

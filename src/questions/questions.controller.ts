@@ -1,30 +1,17 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpException,
-  HttpStatus,
-  Post,
-  Query,
-  Req,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { AuthService } from '../auth/auth.service';
-import { Request } from 'express';
-import { IQuestionResponse } from '../utils/interfaces/questions';
-import { QuestionsService } from './questions.service';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Post, Query } from '@nestjs/common';
+import { IQuestionResponse } from '@/utils/interfaces/questions';
+import { QuestionsService } from '@/questions/questions.service';
+import { RequireAdmin, RequireAuth } from '@/auth/decorators/auth.decorator';
+import { AuthUser, User } from '@/auth/decorators/user.decorator';
 
 @Controller('questions')
 export class QuestionsController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly questionsService: QuestionsService
-  ) {}
+  constructor(private readonly questionsService: QuestionsService) {}
 
   @Post('save')
+  @RequireAuth()
   async saveQuestion(
-    @Req() request: Request,
+    @User() user: AuthUser,
     @Body()
     body: {
       question: string;
@@ -33,20 +20,12 @@ export class QuestionsController {
       techs: number[];
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new UnauthorizedException('Unauthorized');
-    }
-
-    const savedQuestion = await this.questionsService.saveQuestion(body, user.user.id);
-
-    return savedQuestion;
+    return await this.questionsService.saveQuestion(body, user.user.id);
   }
 
   @Post('edit')
+  @RequireAdmin()
   async editQuestion(
-    @Req() request: Request,
     @Body()
     body: {
       id: number;
@@ -56,18 +35,7 @@ export class QuestionsController {
       techs: number[];
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const savedQuestion = await this.questionsService.editQuestions(body);
-
-    return savedQuestion;
+    return await this.questionsService.editQuestions(body);
   }
 
   @Get('get')
@@ -76,14 +44,13 @@ export class QuestionsController {
       throw new HttpException('Type or level not found', HttpStatus.BAD_REQUEST);
     }
 
-    const questions = await this.questionsService.getNonPassedQuestions(query.level, query.user_id);
-
-    return questions;
+    return await this.questionsService.getNonPassedQuestions(query.level, query.user_id);
   }
 
   @Post('add-tech')
+  @RequireAdmin()
   async saveTech(
-    @Req() request: Request,
+    @User() _: AuthUser,
     @Body()
     body: {
       name: string;
@@ -91,23 +58,12 @@ export class QuestionsController {
       specs?: Array<number>;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const result = await this.questionsService.saveNewTech(body);
-
-    return result;
+    return await this.questionsService.saveNewTech(body);
   }
 
   @Post('edit-tech')
+  @RequireAdmin()
   async editTech(
-    @Req() request: Request,
     @Body()
     body: {
       id: number;
@@ -116,76 +72,40 @@ export class QuestionsController {
       specs?: Array<number>;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const result = await this.questionsService.editTech(body);
-
-    return result;
+    return await this.questionsService.editTech(body);
   }
 
   @Get('get-techs')
   async getTechs(@Query() query: { specs?: string }) {
-    const result = await this.questionsService.getTechs(query.specs ? query.specs.split(',').map((el) => +el) : undefined);
-
-    return result;
+    return await this.questionsService.getTechs(query.specs ? query.specs.split(',').map((el) => +el) : undefined);
   }
 
   @Get('get-specs')
   async getAllSpecs() {
-    const result = await this.questionsService.getAllSpecs();
-
-    return result;
+    return await this.questionsService.getAllSpecs();
   }
 
   @Post('add-spec')
+  @RequireAdmin()
   async saveSpec(
-    @Req() request: Request,
     @Body()
     body: {
       name: string;
       techs?: Array<number>;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const result = await this.questionsService.saveNewSpec(body);
-
-    return result;
+    return await this.questionsService.saveNewSpec(body);
   }
 
   @Delete('delete-tech')
-  async deleteTech(@Req() request: Request, @Body() body: { id: number }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const result = await this.questionsService.deleteTechById(body.id);
-
-    return result;
+  @RequireAdmin()
+  async deleteTech(@Body() body: { id: number }) {
+    return await this.questionsService.deleteTechById(body.id);
   }
 
   @Post('edit-spec')
+  @RequireAdmin()
   async editSpec(
-    @Req() request: Request,
     @Body()
     body: {
       id: number;
@@ -193,85 +113,52 @@ export class QuestionsController {
       techs?: Array<number>;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const result = await this.questionsService.editSpec(body);
-
-    return result;
+    return await this.questionsService.editSpec(body);
   }
 
   @Delete('delete-spec')
-  async deleteSpec(@Req() request: Request, @Body() body: { id: number }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const result = await this.questionsService.deleteSpecById(body.id);
-
-    return result;
+  @RequireAdmin()
+  async deleteSpec(@Body() body: { id: number }) {
+    return await this.questionsService.deleteSpecById(body.id);
   }
 
   @Post('update-progress')
+  @RequireAuth()
   async updateQuestionProgress(
-    @Req() request: Request,
+    @User() user: AuthUser,
     @Body()
     body: {
       question_id: number;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new UnauthorizedException('Unauthorized');
-    }
-
-    const result = await this.questionsService.saveQuestionProgress(body.question_id, user.user.id);
-
-    return result;
+    return await this.questionsService.saveQuestionProgress(body.question_id, user.user.id);
   }
 
   @Get('questions-list')
-  async getAllQuestions(@Req() request: Request, @Query() query: { only_mine: string; only_without_specs: string }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new UnauthorizedException('Unauthorized');
-    }
-
-    const result = await this.questionsService.getQuestions(
+  @RequireAuth()
+  async getAllQuestions(@User() user: AuthUser, @Query() query: { only_mine: string; only_without_specs: string }) {
+    return await this.questionsService.getQuestions(
       query.only_without_specs === 'true',
       query.only_mine === 'true' ? user.user.id : undefined
     );
-
-    return result;
   }
 
   /** Удаление вопроса */
   @Delete('delete')
-  async deleteQuestion(@Req() request: Request, @Body() body: { id: number }) {
-    const user = await this.authService.getUserFromTokens(request);
+  @RequireAdmin()
+  async deleteQuestion(@Body() body: { id: number }) {
+    return await this.questionsService.deleteQuestionById(body.id);
+  }
 
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
+  @Post('add-question-passed')
+  @RequireAuth()
+  async addQuestionPassed(@User() user: AuthUser, @Body() body: { correct: boolean; level: number }) {
+    return await this.questionsService.addQuestionPassed(body.correct, user.user.id, body.level);
+  }
 
-    const result = await this.questionsService.deleteQuestionById(body.id);
-
-    return result;
+  @Post('test-passed')
+  @RequireAuth()
+  async testPassed(@User() user: AuthUser, @Body() body: { score: number }) {
+    return await this.questionsService.testPassed(body.score, user.user.id);
   }
 }
