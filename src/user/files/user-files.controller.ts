@@ -28,7 +28,7 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024;
 export class UserFilesController {
   constructor(
     private readonly fileService: FileService,
-    private readonly userFilesService: UserFilesService,
+    private readonly userFilesService: UserFilesService
   ) {}
 
   @Post(':key')
@@ -39,7 +39,7 @@ export class UserFilesController {
       throw new HttpException({ message: 'Размер файла превышает 2MB.', info: { type: 'file' } }, HttpStatus.BAD_REQUEST);
     }
 
-    const savedFiles = await this.fileService.moveFilesToStorage([file], user?.user?.id, 'files', key, false);
+    const savedFiles = await this.fileService.moveFilesToStorage([file], user?.user?.id, 'files', key, false, true);
     const fileMeta = savedFiles[0];
 
     await this.userFilesService.saveOrReplace(key.toUpperCase() as EUSER_FILES_TYPE, fileMeta, user?.user?.id);
