@@ -17,10 +17,7 @@ export class GptController {
 
   @Post('generate')
   @OptionalAuth()
-  async generate(
-    @User() user: AuthUser,
-    @Body() body: { level: number; spec: number; techs?: number[] }
-  ) {
+  async generate(@User() user: AuthUser, @Body() body: { level: number; spec: number; techs?: number[]; locale?: string }) {
     /** Пока скрываем проверку на пользователя. */
     // if (!user.user) {
     //   const isLocal = user.userIp === '::1' || !user?.userIp;
@@ -51,7 +48,7 @@ export class GptController {
     //   }
     // }
 
-    const data = await this.gptService.generateQuestions(body, user?.user?.id, user?.user?.admin, user?.userIp);
+    const data = await this.gptService.generateQuestions(body, user?.user?.id, user?.user?.admin, user?.userIp, body.locale);
 
     return data;
   }

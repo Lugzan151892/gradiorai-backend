@@ -22,6 +22,7 @@ import { ActionsLogService } from '@/user/actions-log/actions-log.service';
 import { EUSER_ACTION_TYPE } from '@/utils/interfaces/enums';
 import { RequireAuth, RequireAdmin, Public, OptionalAuth } from '@/auth/decorators/auth.decorator';
 import { User, AuthUser } from '@/auth/decorators/user.decorator';
+import { IFile } from '@/utils/interfaces/files';
 
 @Controller('interview')
 export class InterviewController {
@@ -122,23 +123,31 @@ export class InterviewController {
     @Body()
     body: {
       user_prompt: string;
+      cv?: string;
     }
   ) {
-    if (!files) {
+    if (!files && !body.cv) {
       throw new HttpException({ message: 'Файлы не добавлены', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
     }
 
     const fileMap = Object.fromEntries(files.map((file) => [file.fieldname, file]));
-
     const userCvFile = fileMap['cv'];
     const userVacFile = fileMap['vac'];
+    const userCvFileFromBody = body.cv ? JSON.parse(body.cv) : null;
 
-    if (!userCvFile) {
+    if (!userCvFile && !userCvFileFromBody) {
       throw new HttpException({ message: 'Файл резюме обязателен!', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
     }
 
-    const userCvFileContent = await this.fileService.extractText(userCvFile);
+    let userCvFileContent: string;
     const userVacFileContent = userVacFile ? await this.fileService.extractText(userVacFile) : undefined;
+
+    if (userCvFile) {
+      userCvFileContent = await this.fileService.extractText(userCvFile);
+    } else if (body.cv) {
+      userCvFileContent = await this.fileService.extractTextFromSavedFile(userCvFileFromBody.path, userCvFileFromBody.mimetype);
+    }
+
     const updatedUserPrompt = this.interviewService.updateUserPromptByFiles(
       body.user_prompt,
       userCvFileContent,
@@ -160,7 +169,7 @@ export class InterviewController {
 
   @Delete('delete')
   @RequireAdmin()
-  async deleteTech(@User() user: AuthUser, @Body() body: { id: string }) {
+  async deleteTech(@Body() body: { id: string }) {
     const result = await this.interviewService.deleteInterview(body.id);
 
     return result;
@@ -180,19 +189,33 @@ export class InterviewController {
       storage: createTempMulterStorage(),
     })
   )
-  async testResume(@User() user: AuthUser, @UploadedFiles() files: Express.Multer.File[]) {
-    if (!files) {
+  async testResume(
+    @User() user: AuthUser,
+    @Body()
+    body: {
+      cv?: string;
+    },
+    @UploadedFiles() files: Express.Multer.File[]
+  ) {
+    const userCvFileFromBody = body.cv ? JSON.parse(body.cv) : null;
+    if (!files && !userCvFileFromBody) {
       throw new HttpException({ message: 'Файлы не добавлены', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
     }
 
     const fileMap = Object.fromEntries(files.map((file) => [file.fieldname, file]));
     const userCvFile = fileMap['cv'];
 
-    if (!userCvFile) {
+    if (!userCvFile && !userCvFileFromBody) {
       throw new HttpException({ message: 'Файл резюме обязателен!', info: { type: 'files' } }, HttpStatus.BAD_REQUEST);
     }
 
-    const userCvFileContent = await this.fileService.extractText(userCvFile);
+    let userCvFileContent: string;
+    if (userCvFile) {
+      userCvFileContent = await this.fileService.extractText(userCvFile);
+    } else if (userCvFileFromBody) {
+      userCvFileContent = await this.fileService.extractTextFromSavedFile(userCvFileFromBody.path, userCvFileFromBody.mimetype);
+    }
+
     const checkResult = await this.gptService.checkResumeByFile(userCvFileContent, user.user?.admin);
 
     await this.actionsLog.createLog({
