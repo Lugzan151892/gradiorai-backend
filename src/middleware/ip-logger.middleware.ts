@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { winstonConfig } from '../config/winston/winston.config';
+import { winstonConfig } from '@/config/winston/winston.config';
 
 @Injectable()
 export class IpLoggerMiddleware implements NestMiddleware {

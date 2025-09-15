@@ -1,6 +1,6 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { UpdateTranslationDto } from './dto/update-translation.dto';
+import { Injectable, BadRequestException, HttpStatus, HttpException } from '@nestjs/common';
+import { PrismaService } from '@/prisma/prisma.service';
+import { UpdateTranslationDto } from '@/translations/dto/update-translation.dto';
 
 @Injectable()
 export class TranslationsService {
@@ -100,5 +100,19 @@ export class TranslationsService {
     }
 
     return { success: true };
+  }
+
+  async deleteKey(locale: string, namespace: string, key: string) {
+    const row = await this.prisma.translation.findUnique({
+      where: { locale_namespace_key: { locale, namespace, key } },
+    });
+
+    if (!row) {
+      throw new HttpException('Ключ не найден', HttpStatus.NOT_FOUND);
+    }
+
+    return this.prisma.translation.delete({
+      where: { locale_namespace_key: { locale, namespace, key } },
+    });
   }
 }

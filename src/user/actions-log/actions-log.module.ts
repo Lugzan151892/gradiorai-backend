@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ActionsLogService } from './actions-log.service';
-import { ActionsLogController } from './actions-log.controller';
-import { PrismaModule } from 'src/prisma/prisma.module';
-import { AuthModule } from 'src/auth/auth.module';
+import { ActionsLogService } from '@/user/actions-log/actions-log.service';
+import { ActionsLogController } from '@/user/actions-log/actions-log.controller';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { AuthModule } from '@/auth/auth.module';
 
 @Module({
   imports: [PrismaModule, AuthModule],

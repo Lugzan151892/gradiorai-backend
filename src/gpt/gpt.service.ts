@@ -3,15 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
-import { getSkillLevel, replacePromptKeywords, getDefaultGptSettings } from './utils';
-import { ESKILL_LEVEL, EUSER_ACTION_TYPE } from '../utils/interfaces/enums';
-import { QuestionsService } from '../questions/questions.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { getSkillLevel, replacePromptKeywords, getDefaultGptSettings } from '@/gpt/utils';
+import { ESKILL_LEVEL, EUSER_ACTION_TYPE } from '@/utils/interfaces/enums';
+import { QuestionsService } from '@/questions/questions.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { Observable, Subject } from 'rxjs';
 import { Stream } from 'openai/streaming';
-import { EGPT_SETTINGS_TYPE, IGPTStreamMessageEvent, IInterview } from '../utils/interfaces/gpt/interfaces';
-import { InterviewService } from '../interview/interview.service';
-import { ActionsLogService } from 'src/user/actions-log/actions-log.service';
+import { EGPT_SETTINGS_TYPE, IGPTStreamMessageEvent, IInterview } from '@/utils/interfaces/gpt/interfaces';
+import { InterviewService } from '@/interview/interview.service';
+import { ActionsLogService } from '@/user/actions-log/actions-log.service';
+import { AchievementsService } from '@/services/achievements/achievements.service';
+import { EACHIEVEMENT_TRIGGER } from '@prisma/client';
 
 export interface IGptSettings {
   id?: number;
@@ -59,7 +61,8 @@ export class GptService {
     private readonly prismaService: PrismaService,
     @Inject(forwardRef(() => InterviewService))
     private readonly interviewService: InterviewService,
-    private readonly actionsLog: ActionsLogService
+    private readonly actionsLog: ActionsLogService,
+    private readonly achievementsService: AchievementsService
   ) {}
 
   async getSettings(type: EGPT_SETTINGS_TYPE) {
@@ -102,7 +105,8 @@ export class GptService {
     params: { level: ESKILL_LEVEL; techs?: number[] },
     userId?: number,
     isAdmin?: boolean,
-    userIp?: string
+    userIp?: string,
+    locale?: string
   ) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
     const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.TEST);
@@ -114,9 +118,10 @@ export class GptService {
       passedQuestions = await this.questionService.getPassedQuestionsByUser(params.level, userId, params.techs);
     }
 
-    const questionsFromDatabase = isAdmin
-      ? []
-      : await this.questionService.getNonPassedQuestions(params.level, questionsAmount, userId, params.techs);
+    const questionsFromDatabase =
+      isAdmin || locale === 'en'
+        ? []
+        : await this.questionService.getNonPassedQuestions(params.level, questionsAmount, userId, params.techs);
 
     if (questionsFromDatabase.length >= questionsAmount) {
       return {
@@ -144,7 +149,7 @@ export class GptService {
       messages: [
         {
           role: 'system',
-          content: replacePromptKeywords(settings.system_message, replaceData),
+          content: `${replacePromptKeywords(settings.system_message, replaceData)} ${locale ? `Тесты генерируются на языке: ${locale}` : ''}`,
         },
         {
           role: 'user',
@@ -181,7 +186,7 @@ export class GptService {
     return this.stream$.asObservable();
   }
 
-  async handleMessage(interview: IInterview, isAdmin?: boolean) {
+  async handleMessage(interview: IInterview, isAdmin?: boolean, userId?: number) {
     const apiKey = this.configService.get<string>('CHAT_SECRET');
     const openai = new OpenAI({ apiKey: apiKey });
     const settings: IGptSettings = await this.getSettings(EGPT_SETTINGS_TYPE.INTERVIEW);
@@ -271,6 +276,12 @@ export class GptService {
       });
     } else {
       const finishedInterview = await this.interviewService.finishInterview(interview.id, buffer.replace('[R]', ''));
+      if (userId) {
+        await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.PASS_INTERVIEW);
+        if (finishedInterview.score.split('/')[0] === '10') {
+          await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.PASS_INTERVIEW_SCORE_10);
+        }
+      }
 
       this.stream$.next({
         name: 'data',
@@ -450,7 +461,8 @@ export class GptService {
 
     return {
       response: {
-        advice: savedAdvice.advice,
+        advice_ru: savedAdvice.advice_ru,
+        advice_en: savedAdvice.advice_en,
       },
       usage: completion.usage,
     };

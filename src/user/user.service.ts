@@ -1,9 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
+import { EACHIEVEMENT_TRIGGER } from '@prisma/client';
+import { AchievementsService } from '@/services/achievements/achievements.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly achievementsService: AchievementsService
+  ) {}
 
   async createNewReview(data: { comment?: string; rating?: number }, userId?: number, ip?: string) {
     const reviewData: {
@@ -28,6 +33,10 @@ export class UserService {
         id: true,
       },
     });
+
+    if (userId && data.comment) {
+      await this.achievementsService.handleEvent(userId, EACHIEVEMENT_TRIGGER.TEST_REVIEW_CREATE);
+    }
 
     return result;
   }
@@ -124,7 +133,7 @@ export class UserService {
       where: { username },
     });
 
-    if (!user) {
+    if (existing) {
       throw new HttpException(
         { message: `Пользователь с именем ${username} уже существует.`, info: { type: 'user' } },
         HttpStatus.BAD_REQUEST
@@ -145,6 +154,14 @@ export class UserService {
       },
     });
 
+    await this.achievementsService.handleEvent(id, EACHIEVEMENT_TRIGGER.USERNAME_SET);
+
     return updatedUser;
+  }
+
+  async deleteUser(id: number) {
+    return this.prisma.user.delete({
+      where: { id },
+    });
   }
 }

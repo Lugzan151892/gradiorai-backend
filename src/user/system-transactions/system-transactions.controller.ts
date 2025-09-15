@@ -1,8 +1,10 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, Post, Put, Query, Req, Res } from '@nestjs/common';
-import { AuthService } from 'src/auth/auth.service';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Post, Put, Query, Req } from '@nestjs/common';
+import { AuthService } from '@/auth/auth.service';
 import { Request } from 'express';
-import { SystemTransactionsService } from './system-transactions-service';
-import { convertDateToISO } from 'src/utils/date';
+import { SystemTransactionsService } from '@/user/system-transactions/system-transactions-service';
+import { convertDateToISO } from '@/utils/date';
+import { RequireAdmin } from '@/auth/decorators/auth.decorator';
+import { AuthUser, User } from '@/auth/decorators/user.decorator';
 
 @Controller('user/system-transactions')
 export class SystemTransactionsController {
@@ -12,32 +14,16 @@ export class SystemTransactionsController {
   ) {}
 
   @Get('all')
-  async getAllTransactions(@Req() request: Request, @Query() query: { only_mine: 'true' | 'false' }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async getAllTransactions(@User() user: AuthUser, @Query() query: { only_mine: 'true' | 'false' }) {
     const result = await this.systemTransactionService.getTransactions(query.only_mine === 'true' ? user.user.id : undefined);
 
     return result;
   }
 
   @Get('transaction')
-  async getTransactionById(@Req() request: Request, @Query() query: { id: string }) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new HttpException(
-        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  @RequireAdmin()
+  async getTransactionById(@Query() query: { id: string }) {
     if (!query.id) {
       throw new HttpException({ message: 'Некорректно указан id.' }, HttpStatus.BAD_REQUEST);
     }
@@ -52,6 +38,7 @@ export class SystemTransactionsController {
   }
 
   @Post('transaction')
+  @RequireAdmin()
   async addTransaction(
     @Body()
     body: {
@@ -60,17 +47,7 @@ export class SystemTransactionsController {
       amount: number;
       reason: string;
     },
-    @Req() request: Request
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
     if (!body.amount || !body.paid_time || !body.transaction_maker_id || !body.reason) {
       throw new HttpException('Не заполнены обязательные данные', HttpStatus.BAD_REQUEST);
     }
@@ -93,6 +70,7 @@ export class SystemTransactionsController {
   }
 
   @Put('transaction')
+  @RequireAdmin()
   async updateTransaction(
     @Body()
     body: {
@@ -102,21 +80,7 @@ export class SystemTransactionsController {
       amount?: number;
       reason?: string;
     },
-    @Req() request: Request
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user?.admin) {
-      throw new HttpException(
-        { message: 'Пользователь не авторизован или недостаточно прав.', info: { type: 'admin' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    if (!body.amount && !body.paid_time && !body.transaction_maker_id && !body.reason) {
-      throw new HttpException('test', HttpStatus.BAD_REQUEST);
-    }
-
     const paidTime = body.paid_time ? convertDateToISO(body.paid_time) : null;
 
     const result = await this.systemTransactionService.updateTransaction({
@@ -128,22 +92,13 @@ export class SystemTransactionsController {
   }
 
   @Delete('transaction')
+  @RequireAdmin()
   async deleteTransactionById(
-    @Req() request: Request,
     @Body()
     body: {
       id: number;
     }
   ) {
-    const user = await this.authService.getUserFromTokens(request);
-
-    if (!user.user) {
-      throw new HttpException(
-        { message: 'Только для авторизованных пользователей.', info: { type: 'auth' } },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
     if (!body.id) {
       throw new HttpException({ message: 'Некорректно указан id.' }, HttpStatus.BAD_REQUEST);
     }

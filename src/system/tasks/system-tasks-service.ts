@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ETASKS_STATUS } from '@prisma/client';
-import { GptService } from 'src/gpt/gpt.service';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { GptService } from '@/gpt/gpt.service';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class SystemTasksService {
