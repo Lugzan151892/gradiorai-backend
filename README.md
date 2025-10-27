@@ -105,7 +105,8 @@ npm run start:dev
 
 ## 🧑‍💻 Author
 Denis (Lugzan151892)
-Full-stack developer ((Nest.js + Next.js) | React | Vue + TypeScript)
+Full-stack developer Nest.js + (Next.js | React | Vue | Nuxt.js) + TypeScript
 📫 Telegram: @denis1518
 
 🔗 GitHub: https://github.com/Lugzan151892
+
